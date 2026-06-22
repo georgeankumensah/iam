@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA — Security Key</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 40px; width: 100%; max-width: 420px; text-align: center; }
+        h1 { font-size: 22px; color: #1a1a2e; margin-bottom: 8px; }
+        p { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+        .error { background: #fef2f2; color: #dc2626; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
+        .btn { padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .btn:hover { background: #1d4ed8; }
+        .icon { font-size: 48px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">🔑</div>
+        <h1>Security Key</h1>
+        <p>Insert and tap your security key to verify your identity.</p>
+        {% if error %}
+        <div class="error">{{ error_description }}</div>
+        {% endif %}
+        <form method="POST" action="/login/mfa/webauthn/">
+            <input type="hidden" name="authRequest" value="{{ auth_request }}">
+            <input type="hidden" name="sessionId" value="{{ session_id }}">
+            <button type="submit" class="btn">Use Security Key</button>
+        </form>
+    </div>
+    <script>
+        if (window.PublicKeyCredential) {
+            document.querySelector('form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const sessionId = form.querySelector('[name="sessionId"]').value;
+                try {
+                    const credential = await navigator.credentials.get({ publicKey: { challenge: new Uint8Array(32) } });
+                    form.querySelector('button').disabled = true;
+                    form.submit();
+                } catch (err) {
+                    document.querySelector('.error').textContent = 'Security key verification failed';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

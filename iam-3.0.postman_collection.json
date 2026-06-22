@@ -1,0 +1,1839 @@
+{
+  "info": {
+    "name": "IAM 3.0 — CLET/GSL Identity & Access Management",
+    "description": "# IAM 3.0 API Collection\n\nCentralised Identity, Authentication, Authorisation & Access-Control Platform.\n\n**Base URL:** `{{baseUrl}}`\n\n## Auth\n\n| Scheme | Where |\n|--------|-------|\n| **JWT Bearer** — `Authorization: Bearer <jwt>` | Admin API (`/v1/admin/*`), Self-Service (`/v1/me`), PAM (`/pam/*`) |\n| **SCIM Bearer** — `Authorization: Bearer <scim_token>` | SCIM endpoints (`/scim/v2/*`) |\n| **HMAC-SHA256** — `X-Signature` header | Delegation webhook (`/delegation/webhook`) |\n| **HMAC-SHA256** — `X-Hub-Signature-256` header | HRMS webhook (`/scim/v2/hrms-webhook`) |\n| **Session cookie** | Login flow (`/login/*`) |\n\n## Variables\n\n| Variable | Initial | Description |\n|----------|---------|-------------|\n| `baseUrl` | `http://localhost:8000` | Django dev server |\n| `jwtToken` | — | Set via Login → Callback test script |\n| `scimToken` | `dev-scim-token-change-in-prod` | From `config/settings/dev.py` |\n| `adminUserId` | — | Created by Admin → Create User |\n| `adminRoleId` | — | Created by Admin → Create Role |\n| `adminClientId` | — | Created by Admin → Create Client |\n| `pamSessionId` | — | Created by PAM → Start Session |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "scimToken",
+      "value": "dev-scim-token-change-in-prod",
+      "type": "string"
+    },
+    {
+      "key": "adminUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminRoleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminClientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pamSessionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Liveness and readiness probes for container orchestration.",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "live"
+              ]
+            },
+            "description": "Returns {status: alive}. Does not check dependencies."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Body has status alive\", () => pm.expect(pm.response.json().status).to.eql(\"alive\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            },
+            "description": "Returns {status: ready} when DB connection is valid."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Body has status ready\", () => pm.expect(pm.response.json().status).to.eql(\"ready\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Login (HTMX)",
+      "description": "Browser-based login flow rendered as HTMX templates. These are HTML pages, not JSON APIs.",
+      "item": [
+        {
+          "name": "Login Page (GET)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "authRequest",
+                  "value": "",
+                  "description": "Optional — Zitadel auth request ID when redirected from IdP"
+                }
+              ]
+            },
+            "description": "Renders the branded HTMX login form."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is HTML\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/html\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (POST) — Invalid Credentials",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/login/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "authRequest",
+                  "value": "",
+                  "description": "Omit or pass empty when testing locally"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "nonexistent@test.gov",
+                  "description": "Email address"
+                },
+                {
+                  "key": "password",
+                  "value": "wrong-password",
+                  "description": "Password"
+                }
+              ]
+            },
+            "description": "Submits credentials to Zitadel via the auth service. Expects HTML re-render with error messaging on failure."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 (re-renders form)\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is HTML\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/html\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "MFA TOTP Page",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/mfa/totp/?authRequest={{authRequest}}&sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                "mfa",
+                "totp",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "authRequest",
+                  "value": "{{authRequest}}",
+                  "description": "From session response"
+                },
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}",
+                  "description": "From session response"
+                }
+              ]
+            },
+            "description": "TOTP challenge page."
+          }
+        },
+        {
+          "name": "MFA WebAuthn Page",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/mfa/webauthn/?authRequest={{authRequest}}&sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                "mfa",
+                "webauthn",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "authRequest",
+                  "value": "{{authRequest}}"
+                },
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            },
+            "description": "WebAuthn (Passkey / FIDO2) challenge page."
+          }
+        },
+        {
+          "name": "MFA SMS Page",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/mfa/sms/?authRequest={{authRequest}}&sessionId={{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                "mfa",
+                "sms",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "authRequest",
+                  "value": "{{authRequest}}"
+                },
+                {
+                  "key": "sessionId",
+                  "value": "{{sessionId}}"
+                }
+              ]
+            },
+            "description": "SMS OTP challenge page."
+          }
+        },
+        {
+          "name": "Consent Page",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/consent?authRequest={{authRequest}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                "consent"
+              ],
+              "query": [
+                {
+                  "key": "authRequest",
+                  "value": "{{authRequest}}"
+                }
+              ]
+            },
+            "description": "OAuth consent screen — user approves requested scopes."
+          }
+        },
+        {
+          "name": "Password Reset Page",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/password-reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                "password-reset"
+              ]
+            },
+            "description": "Password reset request form."
+          }
+        },
+        {
+          "name": "Error Page",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/error?error=access_denied&error_description=User+cancelled+auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                "error"
+              ],
+              "query": [
+                {
+                  "key": "error",
+                  "value": "access_denied"
+                },
+                {
+                  "key": "error_description",
+                  "value": "User cancelled auth"
+                }
+              ]
+            },
+            "description": "Generic error page rendered by the IdP redirect on failure."
+          }
+        },
+        {
+          "name": "Callback",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/login/callback?authRequest={{authRequest}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login",
+                "callback"
+              ],
+              "query": [
+                {
+                  "key": "authRequest",
+                  "value": "{{authRequest}}"
+                }
+              ]
+            },
+            "description": "Redirects back to Zitadel callback to complete OIDC flow. Expects 302."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 302 redirect\", () => pm.response.to.have.status(302));",
+                  "// If using Postman flows, extract a JWT from the Zitadel callback URL",
+                  "// and persist it as the collection variable jwtToken for subsequent requests.",
+                  "// This requires a Zitadel dev instance and a configured OIDC client."
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OpenID Connect RP",
+      "description": "OIDC Relying Party endpoints — logout and backchannel.",
+      "item": [
+        {
+          "name": "RP-Initiated Logout",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/oidc/logout?id_token_hint={{idToken}}&post_logout_redirect_uri={{baseUrl}}&state={{state}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "oidc",
+                "logout"
+              ],
+              "query": [
+                {
+                  "key": "id_token_hint",
+                  "value": "{{idToken}}",
+                  "description": "ID token obtained at login"
+                },
+                {
+                  "key": "post_logout_redirect_uri",
+                  "value": "{{baseUrl}}",
+                  "description": "Where to return after logout"
+                },
+                {
+                  "key": "state",
+                  "value": "",
+                  "description": "Opaque state for CSRF protection"
+                }
+              ]
+            },
+            "description": "Clears local Django session then redirects to Zitadel end_session endpoint."
+          }
+        },
+        {
+          "name": "Backchannel Logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/backchannel-logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "backchannel-logout"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "logout_token",
+                  "value": "{{logoutToken}}",
+                  "description": "JWT logout token from Zitadel containing sub, sid, and events claim"
+                }
+              ]
+            },
+            "description": "Zitadel-initiated backchannel logout. Decodes logout token and revokes active sessions."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Body confirms ok\", () => pm.expect(pm.response.json().status).to.eql(\"ok\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Self-Service",
+      "item": [
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "me"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "default"
+              }
+            ],
+            "description": "Returns authenticated user profile. Requires valid JWT from Zitadel."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has user ID\", () => pm.expect(pm.response.json().data.id).to.not.be.empty);",
+                  "pm.test(\"Response has email\", () => pm.expect(pm.response.json().data.email).to.include(\"@\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SCIM 2.0",
+      "description": "System for Cross-domain Identity Management v2.0 — provision/manage users from upstream HR systems.\n\n**Auth:** Bearer token in SCIM_BEARER_TOKEN env var.",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{scimToken}}",
+                "type": "default"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"john.doe@clet.gov.gh\",\n  \"name\": {\n    \"givenName\": \"John\",\n    \"familyName\": \"Doe\"\n  },\n  \"emails\": [\n    {\n      \"value\": \"john.doe@clet.gov.gh\",\n      \"primary\": true\n    }\n  ]\n}"
+            },
+            "description": "Creates user in Zitadel (via provisioning backend) and local Django User record."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response has user ID\", () => pm.expect(pm.response.json().id).to.not.be.empty);",
+                  "const jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"scimUserId\", jsonData.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users/{{scimUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users",
+                "{{scimUserId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{scimToken}}",
+                "type": "default"
+              }
+            ],
+            "description": "Returns SCIM User resource by internal Django user UUID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Body has userName\", () => pm.expect(pm.response.json().userName).to.include(\"@\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users/{{scimUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users",
+                "{{scimUserId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{scimToken}}",
+                "type": "default"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"john.doe.updated@clet.gov.gh\",\n  \"metadata\": {\n    \"department\": \"IT Security\",\n    \"title\": \"Senior Engineer\"\n  }\n}"
+            },
+            "description": "Partial update of email and/or metadata."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Body confirms updated\", () => pm.expect(pm.response.json().status).to.eql(\"updated\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users/{{scimUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users",
+                "{{scimUserId}}"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{scimToken}}",
+                "type": "default"
+              }
+            ],
+            "description": "Deactivates user in Zitadel and sets Django user status to disabled."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "HRMS Webhook",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/hrms-webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "hrms-webhook"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Hub-Signature-256",
+                "value": "sha256={{hmacSignature}}",
+                "description": "HMAC-SHA256 of body, prefixed with sha256=. Secret is DJANGO_SECRET_KEY."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"user.joiner\",\n  \"payload\": {\n    \"email\": \"newhire@clet.gov.gh\",\n    \"first_name\": \"Jane\",\n    \"last_name\": \"Smith\",\n    \"department\": \"Finance\",\n    \"start_date\": \"2026-07-01\"\n  }\n}"
+            },
+            "description": "HRMS lifecycle webhook — events: user.joiner, user.mover, user.leaver. Dispatches to Celery task."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Body confirms queued\", () => pm.expect(pm.response.json().status).to.eql(\"queued\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unauthorized (no token)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users/{{scimUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users",
+                "{{scimUserId}}"
+              ]
+            },
+            "description": "Requests without a valid SCIM bearer token receive a 401 response."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error is unauthorized\", () => pm.expect(pm.response.json().error).to.eql(\"unauthorized\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin API",
+      "description": "Administrative REST API for IAM management. All endpoints require JWT auth and IsIAMAdmin permission (user_type = staff).\n\n**Auth:** Authorization: Bearer {{jwtToken}}",
+      "item": [
+        {
+          "name": "Users",
+          "item": [
+            {
+              "name": "List Users",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/users?page=1&page_size=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (1-indexed)"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "10",
+                      "description": "Results per page (default 50)"
+                    },
+                    {
+                      "key": "user_type",
+                      "value": "",
+                      "description": "Filter: staff, board, nbec, student, external, public"
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "Filter: pre_active, active, disabled, pending"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Search by email"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Paginated user list with filters."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Response is successful\", () => pm.expect(pm.response.json().success).to.be.true);",
+                      "pm.test(\"Data is an array\", () => pm.expect(Array.isArray(pm.response.json().data)).to.be.true);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create User",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "users"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"newadmin@clet.gov.gh\",\n  \"phone\": \"+233501234567\",\n  \"user_type\": \"staff\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"department\": \"IT\",\n    \"employee_id\": \"EMP-001\"\n  }\n}"
+                },
+                "description": "Creates user in Zitadel (dual-write) and local DB. Emits user.created audit event."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"Data has ID\", () => pm.expect(pm.response.json().data.id).to.not.be.empty);",
+                      "const userId = pm.response.json().data.id;",
+                      "pm.collectionVariables.set(\"adminUserId\", userId);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/users/{{adminUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "users",
+                    "{{adminUserId}}"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Returns a single user profile by UUID."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update User (PATCH)",
+              "request": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/users/{{adminUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "users",
+                    "{{adminUserId}}"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone\": \"+233509876543\",\n  \"metadata\": {\n    \"department\": \"Cyber Security\",\n    \"title\": \"Lead Engineer\"\n  }\n}"
+                },
+                "description": "Partial update. Emits user.updated audit event."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Update confirmed\", () => pm.expect(pm.response.json().success).to.be.true);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Deactivate User (DELETE)",
+              "request": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/users/{{adminUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "users",
+                    "{{adminUserId}}"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Deactivates user in Zitadel and sets local status to disabled. Emits user.deactivated."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Bulk Import Users",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/users/bulk-import",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "users",
+                    "bulk-import"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"users\": [\n    {\n      \"email\": \"bulk1@clet.gov.gh\",\n      \"user_type\": \"staff\",\n      \"status\": \"active\",\n      \"metadata\": {\n        \"department\": \"HR\"\n      }\n    },\n    {\n      \"email\": \"bulk2@clet.gov.gh\",\n      \"user_type\": \"nbec\",\n      \"status\": \"pre_active\",\n      \"metadata\": {\n        \"department\": \"Legal\"\n      }\n    }\n  ],\n  \"notify\": false\n}"
+                },
+                "description": "Bulk-creates users with per-record error handling. Emits user.bulk_import audit event."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Results array present\", () => pm.expect(Array.isArray(pm.response.json().data.results)).to.be.true);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Roles",
+          "item": [
+            {
+              "name": "List Roles",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/roles?system_code=GSL",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "roles"
+                  ],
+                  "query": [
+                    {
+                      "key": "system_code",
+                      "value": "GSL",
+                      "description": "Filter: GSL, CLET, NBEC, etc."
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Returns role catalogue, optionally filtered by system code."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Data is an array\", () => pm.expect(Array.isArray(pm.response.json().data)).to.be.true);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Role",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/roles",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "roles"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"system_code\": \"GSL\",\n  \"role_id\": \"iam_admin\",\n  \"name\": \"IAM Administrator\",\n  \"description\": \"Full access to IAM console\",\n  \"permission_strings\": [\n    \"iam:users:read\",\n    \"iam:users:write\",\n    \"iam:roles:read\",\n    \"iam:roles:write\",\n    \"iam:clients:read\",\n    \"iam:clients:write\",\n    \"iam:audit:read\"\n  ],\n  \"owner_system\": \"IAM\",\n  \"version\": 1\n}"
+                },
+                "description": "Creates a new role in the versioned catalogue. Emits role.created audit event."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"Role has ID\", () => pm.expect(pm.response.json().data.id).to.not.be.empty);",
+                      "const roleId = pm.response.json().data.id;",
+                      "pm.collectionVariables.set(\"adminRoleId\", roleId);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Role",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/roles/{{adminRoleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "roles",
+                    "{{adminRoleId}}"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Returns a single role with permission strings and version info."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Role (PATCH)",
+              "request": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/roles/{{adminRoleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "roles",
+                    "{{adminRoleId}}"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Updated: Full access to IAM console (including audit export)\",\n  \"permission_strings\": [\n    \"iam:users:read\",\n    \"iam:users:write\",\n    \"iam:roles:read\",\n    \"iam:roles:write\",\n    \"iam:clients:read\",\n    \"iam:clients:write\",\n    \"iam:audit:read\",\n    \"iam:audit:export\"\n  ]\n}"
+                },
+                "description": "Partial update. Emits role.updated audit event."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Update confirmed\", () => pm.expect(pm.response.json().success).to.be.true);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Bind Role to User",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/roles/{{adminRoleId}}/bind",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "roles",
+                    "{{adminRoleId}}",
+                    "bind"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"user_id\": \"{{adminUserId}}\",\n  \"justification\": \"Initial admin role assignment\",\n  \"effective_from\": \"2026-06-22T00:00:00Z\",\n  \"effective_to\": \"2027-06-22T00:00:00Z\"\n}"
+                },
+                "description": "Binds role to user with expiry window. Creates RoleBinding in APPROVED state. Emits role.bound."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"Binding has ID\", () => pm.expect(pm.response.json().data.id).to.not.be.empty);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Clients",
+          "item": [
+            {
+              "name": "List Clients",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/clients?lifecycle_state=sandbox_validated",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "clients"
+                  ],
+                  "query": [
+                    {
+                      "key": "lifecycle_state",
+                      "value": "",
+                      "description": "Filter: onboarding, sandbox_validated, production_live, suspended, decommissioned"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Client list with lifecycle state filter."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Data is an array\", () => pm.expect(Array.isArray(pm.response.json().data)).to.be.true);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Create Client (Onboarding)",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/clients",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "clients"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"client_id\": \"gsl-portal-v1\",\n  \"redirect_uris\": [\n    \"https://portal.gsl.gov.gh/callback\",\n    \"http://localhost:3000/callback\"\n  ],\n  \"post_logout_redirect_uris\": [\n    \"https://portal.gsl.gov.gh/\"\n  ],\n  \"scopes\": [\n    \"openid\",\n    \"email\",\n    \"profile\"\n  ],\n  \"owner_id\": \"{{adminUserId}}\",\n  \"granted_system_refs\": [\n    \"GSL\",\n    \"CLET\"\n  ],\n  \"metadata\": {\n    \"application_name\": \"GSL Public Portal\",\n    \"contact_email\": \"dev@gsl.gov.gh\"\n  }\n}"
+                },
+                "description": "Registers OIDC client in onboarding state. Emits client.created audit event.\n\nMust pass compliance gates before promotion to sandbox/production."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                      "pm.test(\"Client has ID\", () => pm.expect(pm.response.json().data.id).to.not.be.empty);",
+                      "const clientId = pm.response.json().data.id;",
+                      "pm.collectionVariables.set(\"adminClientId\", clientId);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Client",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/clients/{{adminClientId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "clients",
+                    "{{adminClientId}}"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Returns client config including lifecycle state, redirect URIs, and compliance status."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Promote Client to Production",
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/clients/{{adminClientId}}/promote",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "clients",
+                    "{{adminClientId}}",
+                    "promote"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Promotes client to production_live state. Requires compliance_gate_passed = true.\n\nReturns 400 if gate not passed."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200 or 400\", () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));",
+                      "if (pm.response.code === 200) {",
+                      "  pm.test(\"Promoted to production\", () => pm.expect(pm.response.json().data.state).to.eql(\"production_live\"));",
+                      "}",
+                      "if (pm.response.code === 400) {",
+                      "  pm.test(\"Compliance gate not passed\", () => pm.expect(pm.response.json().error).to.eql(\"compliance_gate_not_passed\"));",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Audit",
+          "item": [
+            {
+              "name": "Search Audit Events",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/audit?page=1&page_size=20&action=user.created",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "audit"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    },
+                    {
+                      "key": "actor_user_id",
+                      "value": "",
+                      "description": "Filter by actor UUID"
+                    },
+                    {
+                      "key": "action",
+                      "value": "user.created",
+                      "description": "Filter by action (partial match)"
+                    },
+                    {
+                      "key": "entity_type",
+                      "value": "",
+                      "description": "Filter: user, role, role_binding, oidc_client"
+                    },
+                    {
+                      "key": "channel",
+                      "value": "",
+                      "description": "Filter: console, scim, login, delegation"
+                    },
+                    {
+                      "key": "from_date",
+                      "value": "",
+                      "description": "ISO 8601 start"
+                    },
+                    {
+                      "key": "to_date",
+                      "value": "",
+                      "description": "ISO 8601 end"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Search the append-only audit log. Returns paginated results with meta."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Data is an array\", () => pm.expect(Array.isArray(pm.response.json().data)).to.be.true);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Audit Chain Export",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/admin/audit/export",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "admin",
+                    "audit",
+                    "export"
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}",
+                    "type": "default"
+                  }
+                ],
+                "description": "Returns latest audit chain anchor with integrity status."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"Has chain integrity info\", () => pm.expect(pm.response.json().data.chain_integrity).to.not.be.empty);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Delegation",
+      "description": "Delegation webhook — receives grant/revoke events from external systems (System 22).\n\n**Auth:** X-Signature header with HMAC-SHA256 of body.",
+      "item": [
+        {
+          "name": "Grant Delegation",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/delegation/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "delegation",
+                "webhook"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Signature",
+                "value": "{{delegationSignature}}",
+                "description": "HMAC-SHA256 hex digest of body using DJANGO_SECRET_KEY"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"delegation.grant\",\n  \"delegator_user_id\": \"<zitadel-user-id>\",\n  \"delegate_user_id\": \"<zitadel-user-id>\",\n  \"role_id\": \"{{adminRoleId}}\",\n  \"start_at\": \"2026-06-22T08:00:00Z\",\n  \"end_at\": \"2026-07-22T18:00:00Z\",\n  \"justification\": \"Temporary delegation during annual leave\"\n}"
+            },
+            "description": "Grants a role delegation. Looks up users by zitadel_user_id. Creates Delegation in ACTIVE state."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 404\", () => pm.expect(pm.response.code).to.be.oneOf([200, 404]));",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Grant confirmed\", () => pm.expect(pm.response.json().status).to.eql(\"granted\"));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revoke Delegation",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/delegation/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "delegation",
+                "webhook"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Signature",
+                "value": "{{delegationSignature}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"delegation.revoke\",\n  \"delegation_id\": \"<delegation-uuid>\"\n}"
+            },
+            "description": "Revokes an active delegation by ID. Sets state to revoked."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 404\", () => pm.expect(pm.response.code).to.be.oneOf([200, 404]));",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Revoke confirmed\", () => pm.expect(pm.response.json().status).to.eql(\"revoked\"));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing Signature",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/delegation/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "delegation",
+                "webhook"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"delegation.grant\",\n  \"delegator_user_id\": \"test\"\n}"
+            },
+            "description": "Demonstrates 401 when X-Signature header is missing."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Error is missing_signature\", () => pm.expect(pm.response.json().error).to.eql(\"missing_signature\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const body = pm.request.body.toString();",
+              "const secret = pm.environment.get(\"DJANGO_SECRET_KEY\") || \"insecure-dev-key-change-in-prod\";",
+              "const signature = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+              "pm.collectionVariables.set(\"delegationSignature\", signature);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PAM",
+      "description": "Privileged Access Management — record and audit privileged sessions.",
+      "item": [
+        {
+          "name": "Start PAM Session",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/pam/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pam",
+                "sessions"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "default"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_id\": \"server-01.prod.clet.gov.gh\",\n  \"target_host\": \"10.0.1.50\",\n  \"vault_lease_id\": \"vault-lease-abc123\"\n}"
+            },
+            "description": "Records start of a privileged session (SSH, RDP, DB console). Returns session UUID and status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Session is active\", () => pm.expect(pm.response.json().status).to.eql(\"active\"));",
+                  "const sessionId = pm.response.json().id;",
+                  "pm.collectionVariables.set(\"pamSessionId\", sessionId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "End PAM Session",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/pam/sessions/{{pamSessionId}}/end",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pam",
+                "sessions",
+                "{{pamSessionId}}",
+                "end"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}",
+                "type": "default"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recording_uri\": \"s3://clet-pam-recordings/2026/06/22/server-01-prod-session.mp4\",\n  \"recording_sha256\": \"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b\"\n}"
+            },
+            "description": "Ends PAM session with recording URI and SHA-256 hash for audit integrity."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Session ended\", () => pm.expect(pm.response.json().status).to.eql(\"ended\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

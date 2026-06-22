@@ -1,0 +1,102 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: iam_dev
+      POSTGRES_USER: iam
+      POSTGRES_PASSWORD: iam_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iam -d iam_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  zitadel:
+    image: ghcr.io/zitadel/zitadel:latest
+    command: start-from-init --masterkey "MasterkeyNeedsW0rds!AndL0ng!!xyz" --tlsMode disabled
+    ports:
+      - "8080:8080"
+    environment:
+      ZITADEL_DATABASE_POSTGRES_HOST: db
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: zitadel_dev_password
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: iam
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: iam_dev_password
+      ZITADEL_EXTERNALDOMAIN: localhost
+      ZITADEL_EXTERNALPORT: 8080
+      ZITADEL_EXTERNALSECURE: "false"
+      ZITADEL_LOG_LEVEL: info
+    depends_on:
+      db:
+        condition: service_healthy
+
+  django:
+    build: .
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py seed_iam &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DB_HOST: db
+      DB_PASSWORD: iam_dev_password
+      CELERY_BROKER_URL: redis://redis:6379/0
+      ZITADEL_HOST: ${ZITADEL_HOST:-http://zitadel:8080}
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      - db
+      - redis
+
+  celery-worker:
+    build: .
+    command: celery -A config.celery worker -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DB_HOST: db
+      DB_PASSWORD: iam_dev_password
+      CELERY_BROKER_URL: redis://redis:6379/0
+      ZITADEL_HOST: ${ZITADEL_HOST:-http://zitadel:8080}
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A config.celery beat -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DB_HOST: db
+      DB_PASSWORD: iam_dev_password
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  pgdata:

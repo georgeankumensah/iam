@@ -1,0 +1,16 @@
+.venv/
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.sqlite3
+staticfiles/
+media/
+.env
+*.terraform*
+terraform.tfstate*
+kubeconfig*
+*.pem
+*.key
