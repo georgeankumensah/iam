@@ -34,11 +34,18 @@
       "optional": true
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rfdtech/iam-3.0.git"
+  },
   "devDependencies": {
     "oidc-client-ts": "^3.0.0",
     "tsup": "^8.0.0",
     "typescript": "~6.0.2"
   },
-  "license": "UNLICENSED",
-  "private": false
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  }
 }
