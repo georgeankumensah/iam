@@ -61,7 +61,7 @@ function PasskeyContent() {
           {loading ? "Checking..." : "Use Passkey"}
         </Button>
         <div className="text-center">
-          <a href={`/loginname?authRequest=${authRequest}`} className="text-sm text-brand-600 hover:text-brand-500">
+          <a href={`/login?authRequest=${authRequest}`} className="text-sm text-brand-600 hover:text-brand-500">
             Use password instead
           </a>
         </div>

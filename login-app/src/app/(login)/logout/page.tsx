@@ -25,7 +25,7 @@ export default function LogoutPage() {
         <h2 className="mb-2 text-xl font-semibold text-gray-900">Sign out</h2>
         <p className="text-gray-500">{status}</p>
         <a
-          href="/loginname"
+          href="/login"
           className="mt-4 inline-block text-sm text-brand-600 hover:text-brand-500"
         >
           Sign in again

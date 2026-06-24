@@ -39,7 +39,7 @@ function PasswordResetContent() {
           <div className="mb-4 text-4xl">✉️</div>
           <h2 className="mb-2 text-xl font-semibold text-gray-900">Check your email</h2>
           <p className="text-gray-500">If an account exists, you will receive a password reset link.</p>
-          <a href={`/loginname?authRequest=${authRequest}`} className="mt-4 inline-block text-sm text-brand-600 hover:text-brand-500">Back to sign in</a>
+          <a href={`/login?authRequest=${authRequest}`} className="mt-4 inline-block text-sm text-brand-600 hover:text-brand-500">Back to sign in</a>
         </div>
       </Card>
     );
@@ -54,7 +54,7 @@ function PasswordResetContent() {
         <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" autoComplete="email" autoFocus required />
         <Button type="submit" loading={loading}>Send reset link</Button>
         <p className="mt-4 text-center text-sm text-gray-500">
-          <a href={`/loginname?authRequest=${authRequest}`} className="text-brand-600 hover:text-brand-500">Back to sign in</a>
+          <a href={`/login?authRequest=${authRequest}`} className="text-brand-600 hover:text-brand-500">Back to sign in</a>
         </p>
       </form>
     </Card>

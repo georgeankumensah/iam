@@ -192,6 +192,46 @@ export async function checkUserByLoginName(loginName: string) {
   };
 }
 
+export async function checkUserByEmail(email: string) {
+  const result = await fetchFromZitadel<{
+    result: Array<{ userId: string; userName: string; displayName: string }>;
+  }>("/v2/users/_search", {
+    method: "POST",
+    body: JSON.stringify({
+      query: { offset: "0", limit: 100, asc: true },
+      queries: [
+        {
+          emailQuery: {
+            email,
+            method: "EMAIL_QUERY_METHOD_EQUALS",
+          },
+        },
+      ],
+    }),
+  });
+
+  if (result.error) return { data: null, error: result.error };
+  const user = result.data?.result?.[0];
+  if (!user) return { data: null, error: "User not found" };
+  return {
+    data: { userId: user.userId, displayName: user.displayName },
+    error: null,
+  };
+}
+
+export async function requestPasswordReset(userId: string) {
+  return fetchFromZitadel<Record<string, unknown>>(
+    `/v2/users/${encodeURIComponent(userId)}/password_reset`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        notificationType: "NOTIFICATION_TYPE_PASSWORD_RESET",
+        returnMedium: { email: {} },
+      }),
+    }
+  );
+}
+
 export async function createSession(userId: string, password?: string) {
   const checks: Record<string, unknown> = {
     user: { userId },

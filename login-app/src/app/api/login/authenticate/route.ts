@@ -1,34 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSession, createCallback } from "@/lib/server/zitadel-client";
+import { checkUserByEmail, createSession, createCallback } from "@/lib/server/zitadel-client";
 import { createSessionCookie } from "@/lib/server/session";
+
+const FAIL = { error: "Invalid email or password" };
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, password, authRequest } = await request.json();
+    const { email, password, authRequest } = await request.json();
 
-    if (!userId || !password) {
-      return NextResponse.json({ error: "User ID and password are required" }, { status: 400 });
-    }
+    const userResult = await checkUserByEmail(email || "");
+    const userId = userResult.data?.userId || "0";
 
-    const { data: session, error: sessionError } = await createSession(userId, password);
-    if (sessionError || !session) {
-      return NextResponse.json({ error: sessionError || "Failed to create session" }, { status: 401 });
+    const sessionResult = await createSession(userId, password || "");
+    if (!sessionResult.data || !userResult.data) {
+      return NextResponse.json(FAIL, { status: 401 });
     }
 
     const cookie = createSessionCookie({
-      id: session.sessionId,
-      token: session.sessionToken,
+      id: sessionResult.data.sessionId,
+      token: sessionResult.data.sessionToken,
       userId,
     });
 
     let redirectUrl: string | null = null;
     if (authRequest) {
-      const { data: callback, error: cbError } = await createCallback(
+      const { data: callback } = await createCallback(
         authRequest,
-        session.sessionId,
-        session.sessionToken
+        sessionResult.data.sessionId,
+        sessionResult.data.sessionToken
       );
-      if (!cbError && callback?.callbackUrl) {
+      if (callback?.callbackUrl) {
         redirectUrl = callback.callbackUrl;
       }
     }
@@ -37,6 +38,6 @@ export async function POST(request: NextRequest) {
     response.cookies.set(cookie.name, cookie.value, cookie.options as Record<string, unknown>);
     return response;
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(FAIL, { status: 401 });
   }
 }

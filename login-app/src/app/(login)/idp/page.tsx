@@ -31,7 +31,7 @@ function IdpContent() {
         ))}
       </div>
       <div className="mt-6 text-center">
-        <a href={`/loginname?authRequest=${authRequest}`} className="text-sm text-brand-600 hover:text-brand-500">
+        <a href={`/login?authRequest=${authRequest}`} className="text-sm text-brand-600 hover:text-brand-500">
           Sign in with email and password
         </a>
       </div>

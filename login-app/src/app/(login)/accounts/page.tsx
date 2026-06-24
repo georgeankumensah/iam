@@ -34,7 +34,7 @@ function AccountsContent() {
         ))}
       </div>
       <div className="mt-6">
-        <Button variant="secondary" onClick={() => router.push(`/loginname?authRequest=${authRequest}`)}>
+        <Button variant="secondary" onClick={() => router.push(`/login?authRequest=${authRequest}`)}>
           Use another account
         </Button>
       </div>
