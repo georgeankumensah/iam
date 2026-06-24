@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import { getStoredToken, logout, fetchUserinfo } from "../lib/oidc";
+import { getStoredToken, logout, fetchUserinfo, startSessionMonitor } from "../lib/oidc";
 
 interface UserClaims {
   sub: string;
@@ -32,6 +32,8 @@ export default function Home() {
     fetchUserinfo(token.access_token)
       .then(setUserinfo)
       .catch(() => setUserinfo(null));
+
+    startSessionMonitor();
   }, []);
 
   if (error) {

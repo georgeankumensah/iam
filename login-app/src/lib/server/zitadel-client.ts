@@ -316,3 +316,21 @@ export async function deleteSession(sessionId: string) {
     method: "DELETE",
   });
 }
+
+// Reads a session using the service-user token (not the session token, which
+// Zitadel rejects for this endpoint with 403 AUTHZ-Kl3p0). Used to verify a
+// session is still alive for the cross-app session-status check.
+export async function getSessionAsService(sessionId: string) {
+  return fetchFromZitadel<{
+    session: { id: string; factors?: { user?: { id: string } } };
+  }>(`/v2/sessions/${encodeURIComponent(sessionId)}`);
+}
+
+export async function listUserSessions(userId: string) {
+  return fetchFromZitadel<{ sessions: Array<{ id: string }> }>("/v2/sessions/search", {
+    method: "POST",
+    body: JSON.stringify({
+      queries: [{ userIdQuery: { id: userId } }],
+    }),
+  });
+}

@@ -66,6 +66,45 @@ export function logout() {
   window.location.href = `http://localhost:3000/logout?redirect_uri=${encodeURIComponent(origin + "/login?silent=false")}`;
 }
 
+const SESSION_STATUS_URL = "http://localhost:3000/api/session-status";
+
+async function isCentralSessionAlive(): Promise<boolean | null> {
+  try {
+    const res = await fetch(SESSION_STATUS_URL, { credentials: "include" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { authenticated?: boolean };
+    return Boolean(data.authenticated);
+  } catch {
+    return null; // transient/network error — do not force a logout
+  }
+}
+
+let monitorStarted = false;
+
+// Detect a Single Logout triggered from another app (or device): if we hold a
+// local token but the shared Zitadel session is gone, drop the token and show
+// the login screen. Checked on focus, on tab visibility, and on an interval.
+export function startSessionMonitor() {
+  if (monitorStarted) return;
+  monitorStarted = true;
+
+  const check = async () => {
+    if (!getStoredToken()) return;
+    const alive = await isCentralSessionAlive();
+    if (alive === false) {
+      localStorage.removeItem("ams_token_data");
+      window.location.href = "/login?silent=false";
+    }
+  };
+
+  window.addEventListener("focus", check);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") check();
+  });
+  window.setInterval(check, 15000);
+  void check();
+}
+
 interface TokenData {
   access_token: string;
   id_token: string;
