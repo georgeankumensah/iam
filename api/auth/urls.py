@@ -7,8 +7,8 @@ from .views import (
 )
 
 urlpatterns = [
-    path("api/auth/status", auth_status, name="auth-status"),
-    path("api/auth/sessions", create_auth_session, name="create-auth-session"),
-    path("api/auth/sessions/revoke", revoke_auth_session, name="revoke-auth-session"),
-    path("api/auth/sync", sync_auth_state, name="sync-auth-state"),
+    path("status", auth_status, name="auth-status"),
+    path("sessions", create_auth_session, name="create-auth-session"),
+    path("sessions/revoke", revoke_auth_session, name="revoke-auth-session"),
+    path("sync", sync_auth_state, name="sync-auth-state"),
 ]
