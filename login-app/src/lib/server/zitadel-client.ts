@@ -257,12 +257,77 @@ export async function getSession(sessionId: string, sessionToken: string) {
   });
 }
 
-export async function verifyTOTP(sessionId: string, sessionToken: string, code: string) {
-  return fetchFromZitadel<{ verified: boolean }>(`/v2/sessions/${sessionId}/totp`, {
-    method: "POST",
-    body: JSON.stringify({ code }),
-    headers: { Authorization: `Bearer ${sessionToken}` },
+// Progressively updates a session with checks (verify a factor) and/or
+// challenges (request a factor). Uses the service-user token (the login client),
+// which is authorised for session writes. Returns the rotated sessionToken and
+// any challenge payloads (e.g. WebAuthn options, sent OTP codes).
+export async function updateSession(sessionId: string, body: Record<string, unknown>) {
+  return fetchFromZitadel<{
+    sessionToken: string;
+    challenges?: {
+      webAuthN?: { publicKeyCredentialRequestOptions?: unknown };
+      otpSms?: unknown;
+      otpEmail?: unknown;
+    };
+  }>(`/v2/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
   });
+}
+
+export async function getLoginSettings() {
+  return fetchFromZitadel<{
+    settings: { forceMfa?: boolean; forceMfaLocalOnly?: boolean };
+  }>("/v2/settings/login");
+}
+
+// Lists the authentication methods a user has configured (TOTP, OTP-SMS,
+// OTP-EMAIL, U2F, PASSKEY). Used to decide MFA challenge vs. enrollment.
+export async function listUserAuthMethods(userId: string) {
+  return fetchFromZitadel<{ authMethodTypes?: string[] }>(
+    `/v2/users/${encodeURIComponent(userId)}/authentication_methods`
+  );
+}
+
+// ---- Enrollment ----------------------------------------------------------
+
+export async function startTotpRegistration(userId: string) {
+  return fetchFromZitadel<{ uri: string; secret: string }>(
+    `/v2/users/${encodeURIComponent(userId)}/totp`,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
+export async function verifyTotpRegistration(userId: string, code: string) {
+  return fetchFromZitadel<Record<string, unknown>>(
+    `/v2/users/${encodeURIComponent(userId)}/totp/verify`,
+    { method: "POST", body: JSON.stringify({ code }) }
+  );
+}
+
+export async function startPasskeyRegistration(userId: string, domain: string) {
+  return fetchFromZitadel<{
+    passkeyId: string;
+    publicKeyCredentialCreationOptions: unknown;
+  }>(`/v2/users/${encodeURIComponent(userId)}/passkeys`, {
+    method: "POST",
+    body: JSON.stringify({
+      authenticator: "PASSKEY_AUTHENTICATOR_UNSPECIFIED",
+      domain,
+    }),
+  });
+}
+
+export async function verifyPasskeyRegistration(
+  userId: string,
+  passkeyId: string,
+  publicKeyCredential: unknown,
+  passkeyName: string
+) {
+  return fetchFromZitadel<Record<string, unknown>>(
+    `/v2/users/${encodeURIComponent(userId)}/passkeys/${encodeURIComponent(passkeyId)}`,
+    { method: "POST", body: JSON.stringify({ publicKeyCredential, passkeyName }) }
+  );
 }
 
 export async function getAuthRequest(authRequestId: string) {

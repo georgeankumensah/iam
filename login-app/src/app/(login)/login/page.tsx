@@ -81,7 +81,17 @@ function LoginContent() {
         throw new Error("Invalid email or password");
       }
 
-      const { redirectUrl } = await resp.json();
+      const { next, factors, redirectUrl } = await resp.json();
+
+      if (next === "mfa" && factors?.length) {
+        // Route to the preferred second-factor challenge.
+        window.location.href = factors[0].path;
+        return;
+      }
+      if (next === "enroll") {
+        window.location.href = `/authenticator/set?authRequest=${authRequest}`;
+        return;
+      }
       window.location.href = redirectUrl || "/signedin";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password");

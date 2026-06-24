@@ -531,6 +531,13 @@ if __name__ == "__main__":
     setup_login_client(token, org_id)
     grant_login_client_role(token, key_data["userId"])
 
+    # Enforce mandatory MFA and enable the supported second factors.
+    try:
+        import configure_mfa
+        configure_mfa.main()
+    except Exception as exc:  # noqa: BLE001 - bootstrap should not hard-fail on this
+        print(f"WARN: MFA configuration step failed: {exc}")
+
     # Restart login container so it picks up the PAT file
     import subprocess
     subprocess.run(

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSession as getZitadelSession, createCallback } from "@/lib/server/zitadel-client";
-import { parseSessionCookie, createSessionCookie } from "@/lib/server/session";
+import { getSessionAsService, createCallback } from "@/lib/server/zitadel-client";
+import { parseSessionCookie } from "@/lib/server/session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "login_required" }, { status: 401 });
     }
 
-    const { data: activeSession, error } = await getZitadelSession(session.id, session.token);
-    if (error || !activeSession) {
+    const { data: activeSession, error } = await getSessionAsService(session.id);
+    if (error || !activeSession?.session?.id) {
       return NextResponse.json({ error: "login_required" }, { status: 401 });
     }
 

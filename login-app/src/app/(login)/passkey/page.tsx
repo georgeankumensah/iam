@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { prepareRequestOptions, serializeAssertion } from "@/lib/webauthn";
 
 function PasskeyContent() {
   const searchParams = useSearchParams();
@@ -30,12 +31,14 @@ function PasskeyContent() {
       if (!resp.ok) throw new Error("Failed to start passkey login");
 
       const options = await resp.json();
-      const assertion = await navigator.credentials.get({ publicKey: options.publicKey });
+      const credential = (await navigator.credentials.get({
+        publicKey: prepareRequestOptions(options),
+      })) as PublicKeyCredential;
 
       const verifyResp = await fetch("/api/passkey/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ authRequest, assertion }),
+        body: JSON.stringify({ authRequest, assertion: serializeAssertion(credential) }),
       });
 
       if (!verifyResp.ok) throw new Error("Passkey verification failed");
