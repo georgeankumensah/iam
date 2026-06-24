@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth, useToken } from "@clet/oidc-client/react";
+import { useAuth, useToken } from "@rfdtech/oidc-client/react";
 
 export default function Home() {
   const { user, is_authenticated, is_loading, logout } = useAuth();

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useAuth } from "@clet/oidc-client/react";
+import { useAuth } from "@rfdtech/oidc-client/react";
 
 export default function Callback() {
   const { is_authenticated, error } = useAuth();

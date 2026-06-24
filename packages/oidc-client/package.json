@@ -1,5 +1,5 @@
 {
-  "name": "@clet/oidc-client",
+  "name": "@rfdtech/oidc-client",
   "version": "0.1.0",
   "description": "Shared OIDC auth state manager wrapping oidc-client-ts for CLET IAM public clients",
   "type": "module",

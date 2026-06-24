@@ -1,5 +1,5 @@
-import { AuthProvider } from "@clet/oidc-client/react";
-import type { ZitadelConfigInput } from "@clet/oidc-client";
+import { AuthProvider } from "@rfdtech/oidc-client/react";
+import type { ZitadelConfigInput } from "@rfdtech/oidc-client";
 import Login from "./pages/Login";
 import Callback from "./pages/Callback";
 import Home from "./pages/Home";

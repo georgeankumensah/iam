@@ -8,7 +8,7 @@ export default defineConfig({
     host: "0.0.0.0",
   },
   optimizeDeps: {
-    exclude: ["@clet/oidc-client", "@clet/oidc-client/react"],
+    exclude: ["@rfdtech/oidc-client", "@rfdtech/oidc-client/react"],
   },
   appType: "spa",
 });
