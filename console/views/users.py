@@ -114,17 +114,41 @@ def users_bulk_import(request):
     serializer = BulkImportSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
+    from console.onboarding import invite_user
+    from rbac.models import Role
+
     results: list[dict] = []
     for user_data in serializer.validated_data["users"]:
+        email = user_data.get("email", "")
+        system_code = (user_data.get("system_code") or "").strip()
+        role_code = (user_data.get("role") or "").strip()
         try:
-            zitadel_result = create_user_in_zitadel(user_data["email"])
-            user = User.objects.create(**user_data)
-            if zitadel_result and zitadel_result.get("userId"):
-                user.zitadel_user_id = zitadel_result["userId"]
-                user.save(update_fields=["zitadel_user_id"])
-            results.append({"email": user_data["email"], "status": "created", "id": str(user.id)})
+            if system_code:
+                # Onboard into a system: creates the user, grants the role, and
+                # emails an invite — the same path as a single invitation.
+                role_ids = []
+                if role_code:
+                    role = Role.objects.filter(system_code=system_code, role_id=role_code).first()
+                    if role:
+                        role_ids = [str(role.id)]
+                inv, _ = invite_user(
+                    email=email, system_code=system_code, role_ids=role_ids,
+                    invited_by=request.user, return_code=False,
+                )
+                results.append({"email": email, "status": "invited", "id": str(inv.id)})
+            else:
+                zitadel_result = create_user_in_zitadel(email)
+                user = User.objects.create(
+                    email=email,
+                    user_type=user_data.get("user_type", "external"),
+                    metadata=user_data.get("metadata", {}),
+                )
+                if zitadel_result and zitadel_result.get("userId"):
+                    user.zitadel_user_id = zitadel_result["userId"]
+                    user.save(update_fields=["zitadel_user_id"])
+                results.append({"email": email, "status": "created", "id": str(user.id)})
         except Exception as e:
-            results.append({"email": user_data["email"], "status": "error", "error": str(e)})
+            results.append({"email": email, "status": "error", "error": str(e)})
 
     emit_event(
         actor_user_id=str(request.user.id),

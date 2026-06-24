@@ -25,6 +25,14 @@ services:
       timeout: 3s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # web UI — view sent invite emails
+      - "1025:1025"   # SMTP
+    environment:
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
   zitadel:
     image: ghcr.io/zitadel/zitadel:latest
     command: >
@@ -131,6 +139,8 @@ services:
       ZITADEL_API_URL: ${ZITADEL_HOST:-http://zitadel:8080}
       ZITADEL_SERVICE_USER_TOKEN_FILE: /machinekey/zitadel-admin-sa.json
       NEXT_PUBLIC_BASE_PATH: ""
+      IAM_API_URL: http://django:8000
+      ONBOARDING_INTERNAL_SECRET: ${ONBOARDING_INTERNAL_SECRET:-change-me-internal}
     volumes:
       - ./login-app:/app
       - /app/node_modules

@@ -1,4 +1,4 @@
-const CLIENT_ID = "378872306899943430";
+const CLIENT_ID = "378890329069256710";
 const REDIRECT_URI = "http://localhost:5173/login/callback";
 const ZITADEL_AUTHORIZE_URL = "http://localhost:3000/oauth/v2/authorize";
 const ZITADEL_TOKEN_URL = "http://localhost:3000/oauth/v2/token";

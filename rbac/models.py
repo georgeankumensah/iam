@@ -10,6 +10,9 @@ class Role(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     permission_strings = models.JSONField(default=list, blank=True)
+    # Admin-tier role for its system (e.g. ams.admin). IAM only records the tier;
+    # what an admin can do is enforced by the downstream system.
+    is_admin = models.BooleanField(default=False)
     version = models.IntegerField(default=1)
     owner_system = models.CharField(max_length=100, blank=True, default="")
     effective_from = models.DateTimeField(null=True, blank=True)

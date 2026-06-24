@@ -538,6 +538,16 @@ if __name__ == "__main__":
     except Exception as exc:  # noqa: BLE001 - bootstrap should not hard-fail on this
         print(f"WARN: MFA configuration step failed: {exc}")
 
+    # Point ZITADEL at the dev SMTP sink (Mailpit) so invite emails send.
+    try:
+        import configure_smtp
+        configure_smtp.main()
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARN: SMTP configuration step failed: {exc}")
+
+    print("\nNext: provision per-system projects/roles and the OIDCClient mirror:")
+    print("  docker compose exec django python manage.py setup_systems")
+
     # Restart login container so it picks up the PAT file
     import subprocess
     subprocess.run(
