@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import Invitation
+from clients.models import OIDCClient
 from console.onboarding import (
     OnboardingError,
     accept_invitation,
@@ -14,7 +15,8 @@ from console.onboarding import (
     resend_invitation,
     revoke_invitation,
 )
-from console.permissions import can_manage_system_invites
+from console.permissions import can_manage_system_invites, is_iam_admin, is_system_admin
+from rbac.models import Role
 from rbac.services import SoDViolation
 
 logger = logging.getLogger("iam.console.invitations")
@@ -34,21 +36,47 @@ def _serialize(inv: Invitation) -> dict:
     }
 
 
+def manageable_systems(user) -> list[str]:
+    """System codes the caller may invite into."""
+    codes = list(
+        OIDCClient.objects.exclude(system_code="").values_list("system_code", flat=True).distinct()
+    )
+    if is_iam_admin(user):
+        return codes
+    return [c for c in codes if is_system_admin(user, c)]
+
+
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
-def invitations_list(request, system_code: str):
-    if not can_manage_system_invites(request.user, system_code):
-        return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+def invitations_collection(request):
+    """List invitations (scoped to systems you manage) or create one.
 
+    POST body: { email, system_code, role_ids[] }
+      - IAM admin may invite into any system, any role.
+      - A system admin may invite only into systems they administer; granting an
+        admin-tier role goes to DG approval before it takes effect.
+    """
     if request.method == "GET":
-        qs = Invitation.objects.filter(system_code=system_code).order_by("-created_at")
+        wanted = request.query_params.get("system_code")
+        allowed = manageable_systems(request.user)
+        if wanted:
+            if wanted not in allowed:
+                return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+            allowed = [wanted]
+        qs = Invitation.objects.filter(system_code__in=allowed).order_by("-created_at")
         return Response({"success": True, "data": [_serialize(i) for i in qs]})
 
     email = (request.data.get("email") or "").strip().lower()
-    if not email:
-        return Response({"success": False, "error": "email required"}, status=status.HTTP_400_BAD_REQUEST)
+    system_code = (request.data.get("system_code") or "").strip()
     role_ids = request.data.get("role_ids") or []
-    return_code = bool(request.data.get("return_code", False))
+
+    if not email or not system_code:
+        return Response(
+            {"success": False, "error": "email and system_code are required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not can_manage_system_invites(request.user, system_code):
+        return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
     try:
         inv, code = invite_user(
@@ -56,7 +84,7 @@ def invitations_list(request, system_code: str):
             system_code=system_code,
             role_ids=role_ids,
             invited_by=request.user,
-            return_code=return_code,
+            return_code=bool(request.data.get("return_code", False)),
         )
     except SoDViolation as e:
         return Response(
@@ -67,38 +95,39 @@ def invitations_list(request, system_code: str):
         return Response({"success": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     data = _serialize(inv)
-    if code:  # dev/return_code mode
+    if code:
         data["invite_code"] = code
     return Response({"success": True, "data": data}, status=status.HTTP_201_CREATED)
 
 
+def _load_managed(request, invite_id):
+    try:
+        inv = Invitation.objects.get(id=invite_id)
+    except Invitation.DoesNotExist:
+        return None, Response({"success": False, "error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+    if not can_manage_system_invites(request.user, inv.system_code):
+        return None, Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+    return inv, None
+
+
 @api_view(["GET", "DELETE"])
 @permission_classes([IsAuthenticated])
-def invitation_detail(request, system_code: str, invite_id: str):
-    if not can_manage_system_invites(request.user, system_code):
-        return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
-    try:
-        inv = Invitation.objects.get(id=invite_id, system_code=system_code)
-    except Invitation.DoesNotExist:
-        return Response({"success": False, "error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
-
+def invitation_detail(request, invite_id: str):
+    inv, err = _load_managed(request, invite_id)
+    if err:
+        return err
     if request.method == "GET":
         return Response({"success": True, "data": _serialize(inv)})
-
     revoke_invitation(inv, actor=request.user)
     return Response({"success": True, "data": _serialize(inv)})
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def invitation_resend(request, system_code: str, invite_id: str):
-    if not can_manage_system_invites(request.user, system_code):
-        return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
-    try:
-        inv = Invitation.objects.get(id=invite_id, system_code=system_code)
-    except Invitation.DoesNotExist:
-        return Response({"success": False, "error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
-
+def invitation_resend(request, invite_id: str):
+    inv, err = _load_managed(request, invite_id)
+    if err:
+        return err
     code = resend_invitation(inv, return_code=bool(request.data.get("return_code", False)))
     data = _serialize(inv)
     if code:
@@ -106,14 +135,32 @@ def invitation_resend(request, system_code: str, invite_id: str):
     return Response({"success": True, "data": data})
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_admin_systems(request):
+    """Systems the caller can invite into, with each system's assignable roles.
+
+    Lets a system-admin UI show only their systems and only roles they may grant.
+    """
+    out = []
+    for code in manageable_systems(request.user):
+        client = OIDCClient.objects.filter(system_code=code).first()
+        roles = Role.objects.filter(system_code=code, is_deprecated=False).order_by("role_id")
+        out.append({
+            "system_code": code,
+            "name": client.name if client else code,
+            "roles": [
+                {"id": str(r.id), "role_id": r.role_id, "name": r.name, "is_admin": r.is_admin}
+                for r in roles
+            ],
+        })
+    return Response({"success": True, "data": out})
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def invitation_accept(request):
-    """Internal endpoint called by the login-app when an invitee sets a password.
-
-    Authenticated by a shared secret (server-to-server only); the ZITADEL invite
-    code is itself the user's proof.
-    """
+    """Internal endpoint called by the login-app when an invitee sets a password."""
     if request.headers.get("X-Internal-Secret") != settings.ONBOARDING_INTERNAL_SECRET:
         return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
@@ -125,7 +172,7 @@ def invitation_accept(request):
 
     try:
         result = accept_invitation(zitadel_user_id=uid, code=code, password=password)
-    except Exception as e:  # noqa: BLE001 - surface ZITADEL errors as 400
+    except Exception as e:  # noqa: BLE001
         logger.warning("invitation accept failed: %s", e)
         return Response({"success": False, "error": "invalid_or_expired"}, status=status.HTTP_400_BAD_REQUEST)
 

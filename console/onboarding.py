@@ -44,16 +44,14 @@ def system_frontend_url(client: OIDCClient) -> str:
 
 
 def _resolve_roles(system_code: str, role_ids: list[str]) -> list[Role]:
-    if role_ids:
-        roles = list(Role.objects.filter(id__in=role_ids, system_code=system_code, is_deprecated=False))
-        if not roles:
-            raise OnboardingError("no valid roles for this system")
-        return roles
-    # Default to the lowest-privilege (non-admin) role for the system.
-    lowest = Role.objects.filter(system_code=system_code, is_admin=False, is_deprecated=False).order_by("role_id").first()
-    if not lowest:
-        raise OnboardingError("system has no assignable roles")
-    return [lowest]
+    if not role_ids:
+        raise OnboardingError("role_required")
+    roles = list(Role.objects.filter(id__in=role_ids, system_code=system_code, is_deprecated=False))
+    if not roles:
+        raise OnboardingError("no valid roles for this system")
+    if len(roles) != len(set(role_ids)):
+        raise OnboardingError("some roles do not belong to this system")
+    return roles
 
 
 def invite_user(*, email, system_code, role_ids, invited_by, return_code=False):

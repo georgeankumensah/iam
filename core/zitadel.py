@@ -280,6 +280,57 @@ class ZitadelService:
              "verificationCode": code},
         )
 
+    def list_user_grants(self, user_id: str) -> list[dict]:
+        """All of a user's project grants (roleKeys per project)."""
+        data = self.request(
+            "POST", "/management/v1/users/grants/_search",
+            {"queries": [{"userIdQuery": {"userId": user_id}}]},
+        )
+        return data.get("result", [])
+
+    # -- app lifecycle ------------------------------------------------------
+
+    def deactivate_app(self, project_id: str, app_id: str) -> None:
+        self.request("POST", f"/management/v1/projects/{project_id}/apps/{app_id}/_deactivate", {})
+
+    def reactivate_app(self, project_id: str, app_id: str) -> None:
+        self.request("POST", f"/management/v1/projects/{project_id}/apps/{app_id}/_reactivate", {})
+
+    def regenerate_app_secret(self, project_id: str, app_id: str) -> dict:
+        return self.request("PUT", f"/management/v1/projects/{project_id}/apps/{app_id}/oidc_config/_generate_client_secret", {})
+
+    def set_project_role_check(self, project_id: str, enabled: bool) -> None:
+        """Toggle whether a role grant is required to enter the project's apps."""
+        project = self.request("GET", f"/management/v1/projects/{project_id}").get("project", {})
+        self.request(
+            "PUT", f"/management/v1/projects/{project_id}",
+            {
+                "name": project.get("name"),
+                "projectRoleAssertion": project.get("projectRoleAssertion", True),
+                "projectRoleCheck": enabled,
+                "hasProjectCheck": project.get("hasProjectCheck", False),
+                "privateLabelingSetting": project.get(
+                    "privateLabelingSetting", "PRIVATE_LABELING_SETTING_UNSPECIFIED"
+                ),
+            },
+        )
+
+    # -- sessions -----------------------------------------------------------
+
+    def list_user_sessions(self, user_id: str) -> list[dict]:
+        data = self.request(
+            "POST", "/v2/sessions/search",
+            {"queries": [{"userIdQuery": {"id": user_id}}]},
+        )
+        return data.get("sessions", [])
+
+    def delete_session(self, session_id: str) -> None:
+        try:
+            self.request("DELETE", f"/v2/sessions/{session_id}")
+        except ZitadelError as e:
+            if e.status != 404:
+                raise
+
     def terminate_user_sessions(self, user_id: str) -> None:
         # Re-evaluate access after a role change by ending the user's sessions.
         try:

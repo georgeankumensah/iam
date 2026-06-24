@@ -22,20 +22,52 @@ def clients_list(request):
         return Response({"success": True, "data": OIDCClientSerializer(qs, many=True).data})
 
     elif request.method == "POST":
-        from clients.serializers import OIDCClientCreateSerializer
-        serializer = OIDCClientCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        client = serializer.save()
+        # Provision a brand-new system: ZITADEL project + SPA app + roles +
+        # Django mirror. Body: { system_code, name, frontend_port? |
+        # redirect_uris?, roles: [{role_id, name, is_admin?}] }.
+        from clients.services import provision_system, redirect_uris_for_port
+
+        code = (request.data.get("system_code") or "").strip()
+        name = (request.data.get("name") or code).strip()
+        if not code:
+            return Response({"success": False, "error": "system_code required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        port = request.data.get("frontend_port")
+        if port:
+            redirects, logout = redirect_uris_for_port(int(port))
+        else:
+            redirects = request.data.get("redirect_uris") or []
+            logout = request.data.get("post_logout_redirect_uris") or []
+        if not redirects:
+            return Response(
+                {"success": False, "error": "frontend_port or redirect_uris required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        roles = [
+            (r["role_id"], r.get("name", r["role_id"]), bool(r.get("is_admin", False)))
+            for r in (request.data.get("roles") or [])
+            if r.get("role_id")
+        ]
+
+        try:
+            res = provision_system(
+                code=code, project_name=name,
+                redirect_uris=redirects, post_logout_uris=logout, roles=roles,
+            )
+        except Exception as e:  # noqa: BLE001
+            return Response({"success": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         emit_event(
             actor_user_id=str(request.user.id),
             action="client.created",
             entity_type="oidc_client",
-            entity_id=str(client.id),
+            entity_id=res["client_id"],
             channel="console",
+            metadata={"system_code": code, "project_id": res["project_id"]},
         )
 
-        return Response({"success": True, "data": {"id": str(client.id)}}, status=status.HTTP_201_CREATED)
+        return Response({"success": True, "data": res}, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])
