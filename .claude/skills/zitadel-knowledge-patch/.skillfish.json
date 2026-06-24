@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "zitadel-knowledge-patch",
+  "owner": "nevaberry",
+  "repo": "nevaberry-plugins",
+  "path": "plugins/zitadel-knowledge-patch/skills/zitadel-knowledge-patch",
+  "branch": "master",
+  "sha": "a2aaaf1008a45c0cd158076b43aabb1170a35cf4",
+  "source": "manual"
+}

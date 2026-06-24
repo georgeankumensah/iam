@@ -1,0 +1,41 @@
+{
+  "name": "@iam/login",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "HOSTNAME=127.0.0.1 next dev",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3000}",
+    "lint": "next lint",
+    "clean": "rm -rf .next node_modules"
+  },
+  "dependencies": {
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-node": "^2.1.1",
+    "@headlessui/react": "^2.2.10",
+    "@heroicons/react": "^2.2.0",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/postcss": "^4.3.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.577.0",
+    "next": "16.2.6",
+    "next-intl": "^4.11.2",
+    "next-themes": "^0.4.6",
+    "postcss": "^8.5.14",
+    "qrcode.react": "^4.2.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-hook-form": "^7.75.0",
+    "server-only": "^0.0.1",
+    "tailwindcss": "^4.3.1",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.4",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/uuid": "^11.0.0",
+    "typescript": "5.9.3"
+  }
+}

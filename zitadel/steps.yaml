@@ -1,0 +1,33 @@
+# ZITADEL setup steps — used by `start-from-init --steps`
+# Overrides default instance config for the first instance created during setup.
+# See: https://zitadel.com/docs/self-hosting/deploy/kubernetes/configuration
+FirstInstance:
+  # Path where the machine service account JSON key will be written
+  MachineKeyPath: /machinekey/zitadel-admin-sa.json
+
+  Org:
+    # Human admin user (for Console login)
+    Human:
+      UserName: admin
+      Password: "Password1!"
+      FirstName: Zitadel
+      LastName: Admin
+      Email: admin@clet.gov.gh
+      PasswordChangeRequired: false
+
+    # Machine user (service account) for programmatic API access
+    Machine:
+      Machine:
+        Username: zitadel-admin-sa
+        Name: IAM Admin Service Account
+      MachineKey:
+        Type: 1
+
+  # Login client machine user for the Next.js Login App
+  LoginClient:
+    Machine:
+      Username: login-client
+      Name: IAM Login Client
+    PAT:
+      ExpirationDate: "2036-01-01T00:00:00Z"
+      Path: /machinekey/login-client.pat

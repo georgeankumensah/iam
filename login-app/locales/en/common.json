@@ -1,0 +1,101 @@
+{
+  "app": {
+    "title": "CLET IAM",
+    "subtitle": "Centralised Identity & Access Management"
+  },
+  "loginname": {
+    "title": "Sign in",
+    "label": "Email or Username",
+    "placeholder": "Enter your email or username",
+    "continue": "Continue",
+    "notFound": "User not found. Please check your email or username."
+  },
+  "password": {
+    "title": "Enter password",
+    "label": "Password",
+    "placeholder": "Enter your password",
+    "forgot": "Forgot password?",
+    "signIn": "Sign in",
+    "invalid": "Invalid password. Please try again."
+  },
+  "mfa": {
+    "title": "Verify your identity",
+    "subtitle": "Choose a verification method",
+    "totp": "Authenticator App",
+    "sms": "SMS Code",
+    "email": "Email Code"
+  },
+  "totp": {
+    "title": "Authenticator Code",
+    "subtitle": "Enter the 6-digit code from your authenticator app",
+    "label": "Verification code",
+    "placeholder": "000000",
+    "verify": "Verify"
+  },
+  "passkey": {
+    "title": "Sign in with Passkey",
+    "subtitle": "Use your device's biometric or PIN to sign in securely",
+    "use": "Use Passkey",
+    "passwordInstead": "Use password instead"
+  },
+  "register": {
+    "title": "Create account",
+    "email": "Email",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "submit": "Create account",
+    "signIn": "Already have an account? Sign in"
+  },
+  "signedin": {
+    "title": "Signed in successfully",
+    "message": "You are now signed in. Redirecting..."
+  },
+  "logout": {
+    "title": "Sign out",
+    "message": "You have been signed out.",
+    "signInAgain": "Sign in again"
+  },
+  "error": {
+    "title": "Authentication Error",
+    "message": "An error occurred during authentication. Please try again.",
+    "tryAgain": "Try again"
+  },
+  "verify": {
+    "title": "Verify your email",
+    "subtitle": "Enter the verification code sent to your email",
+    "label": "Verification code",
+    "submit": "Verify email"
+  },
+  "authenticator": {
+    "title": "Set up authenticator",
+    "subtitle": "Choose an authentication method to secure your account",
+    "passkey": {
+      "desc": "Use biometric or PIN"
+    },
+    "totp": {
+      "desc": "Use TOTP codes"
+    }
+  },
+  "accounts": {
+    "title": "Choose an account",
+    "useAnother": "Use another account"
+  },
+  "idp": {
+    "title": "Sign in with",
+    "emailPassword": "Sign in with email and password"
+  },
+  "device": {
+    "title": "Device Authorization",
+    "subtitle": "Enter the code displayed on your device",
+    "label": "Device code",
+    "verify": "Verify"
+  },
+  "u2f": {
+    "title": "Security Key",
+    "subtitle": "Insert and tap your security key",
+    "tap": "Tap Security Key",
+    "waiting": "Waiting for key..."
+  }
+}

@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-brand-50: #f0f5ff;
+    --color-brand-100: #e0ebff;
+    --color-brand-200: #b8d4fe;
+    --color-brand-300: #7cb4fc;
+    --color-brand-400: #4391f9;
+    --color-brand-500: #1a6ff5;
+    --color-brand-600: #0c52d5;
+    --color-brand-700: #0e41ac;
+    --color-brand-800: #12388b;
+    --color-brand-900: #153272;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}

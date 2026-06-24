@@ -27,7 +27,11 @@ services:
 
   zitadel:
     image: ghcr.io/zitadel/zitadel:latest
-    command: start-from-init --masterkey "MasterkeyNeedsW0rds!AndL0ng!!xyz" --tlsMode disabled
+    command: >
+      start-from-init
+      --masterkey "MasterkeyNeedsW0rds!AndL0ng!!xyz"
+      --tlsMode disabled
+      --steps /config/steps.yaml
     ports:
       - "8080:8080"
     environment:
@@ -42,6 +46,12 @@ services:
       ZITADEL_EXTERNALPORT: 8080
       ZITADEL_EXTERNALSECURE: "false"
       ZITADEL_LOG_LEVEL: info
+
+    volumes:
+      - ./zitadel:/config:ro
+      - ./zitadel/machinekey:/machinekey
+    healthcheck:
+      disable: true
     depends_on:
       db:
         condition: service_healthy
@@ -60,12 +70,24 @@ services:
       DB_PASSWORD: iam_dev_password
       CELERY_BROKER_URL: redis://redis:6379/0
       ZITADEL_HOST: ${ZITADEL_HOST:-http://zitadel:8080}
+      ZITADEL_INTERNAL_HOST: http://zitadel:8080
+      ZITADEL_MACHINE_KEY_PATH: /machinekey/zitadel-admin-sa.json
+      ZITADEL_PROJECT_ID: ${ZITADEL_PROJECT_ID}
+      ZITADEL_ORG_ID: ${ZITADEL_ORG_ID}
+      ZITADEL_SERVICE_ACCOUNT_JWT: ${ZITADEL_SERVICE_ACCOUNT_JWT}
+      OIDC_RP_CLIENT_ID: ${OIDC_RP_CLIENT_ID}
+      OIDC_RP_CLIENT_SECRET: ${OIDC_RP_CLIENT_SECRET}
     volumes:
       - .:/app
       - /app/.venv
+      - ./zitadel/machinekey:/machinekey
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      zitadel:
+        condition: service_started
 
   celery-worker:
     build: .
@@ -97,6 +119,26 @@ services:
     depends_on:
       - db
       - redis
+
+  login-app:
+    build:
+      context: ./login-app
+      dockerfile: Dockerfile
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3000:3000"
+    environment:
+      ZITADEL_API_URL: ${ZITADEL_HOST:-http://zitadel:8080}
+      ZITADEL_SERVICE_USER_TOKEN_FILE: /machinekey/zitadel-admin-sa.json
+      NEXT_PUBLIC_BASE_PATH: ""
+    volumes:
+      - ./login-app:/app
+      - /app/node_modules
+      - /app/.next
+      - ./zitadel/machinekey:/machinekey
+    depends_on:
+      zitadel:
+        condition: service_started
 
 volumes:
   pgdata:
