@@ -18,7 +18,7 @@ function jwtFromEnv(): string {
   return process.env.ZITADEL_SERVICE_USER_TOKEN || "";
 }
 
-function b64(s: string): string {
+function b64(s: string | Buffer): string {
   return Buffer.from(s).toString("base64url");
 }
 
@@ -57,7 +57,7 @@ function httpRequest(
       },
     };
     if (body !== undefined) {
-      opts.headers!["Content-Length"] = Buffer.byteLength(body).toString();
+      (opts.headers as Record<string, string>)["Content-Length"] = Buffer.byteLength(body).toString();
     }
     const req = http.request(opts, (res) => {
       let data = "";
@@ -183,7 +183,7 @@ export async function checkUserByLoginName(loginName: string) {
     }),
   });
 
-  if (result.error) return result;
+  if (result.error) return { data: null, error: result.error };
   const user = result.data?.result?.[0];
   if (!user) return { data: null, error: "User not found" };
   return {
@@ -238,9 +238,14 @@ export async function getAuthRequest(authRequestId: string) {
   }>(`/oauth/v2/auth_requests/${authRequestId}`);
 }
 
-export async function createCallback(authRequestId: string, sessionId: string) {
-  return fetchFromZitadel<{ callbackUrl: string }>("/oauth/v2/callback", {
-    method: "POST",
-    body: JSON.stringify({ authRequestId, sessionId }),
-  });
+export async function createCallback(authRequestId: string, sessionId: string, sessionToken: string) {
+  return fetchFromZitadel<{ callbackUrl: string }>(
+    `/v2/oidc/auth_requests/${encodeURIComponent(authRequestId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        session: { session_id: sessionId, session_token: sessionToken },
+      }),
+    }
+  );
 }

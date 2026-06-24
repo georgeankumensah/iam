@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ redirectUrl: null });
     }
 
-    const { data: callback } = await createCallback(authRequest, session.id);
+    const { data: callback } = await createCallback(authRequest, session.id, session.token);
     if (callback?.callbackUrl) {
       return NextResponse.json({ redirectUrl: callback.callbackUrl });
     }

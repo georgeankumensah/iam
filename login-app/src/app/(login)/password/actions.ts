@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { checkUserByLoginName, verifyPassword, createSession, getAuthRequest, createCallback } from "@/lib/server/zitadel-client";
+import { checkUserByLoginName, createSession, createCallback } from "@/lib/server/zitadel-client";
 import { createSessionCookie } from "@/lib/server/session";
 import { redirect } from "next/navigation";
 
@@ -14,11 +14,7 @@ export async function lookupUser(formData: FormData) {
     return { error: "User not found. Please check your email or username." };
   }
 
-  return {
-    userId: user.userId,
-    loginName,
-    authRequest,
-  };
+  return { userId: user.userId, loginName, authRequest };
 }
 
 export async function authenticateUser(formData: FormData) {
@@ -26,27 +22,27 @@ export async function authenticateUser(formData: FormData) {
   const password = formData.get("password") as string;
   const authRequest = formData.get("authRequest") as string;
 
-  const { data: verified, error: verifyError } = await verifyPassword(userId, password);
-  if (verifyError || !verified?.verified) {
-    return { error: "Invalid password. Please try again." };
-  }
-
-  const { data: session, error: sessionError } = await createSession(userId, { password: { password } });
+  const { data: session, error: sessionError } = await createSession(userId, password);
   if (sessionError || !session) {
-    return { error: "Failed to create session. Please try again." };
+    return { error: "Failed to authenticate. Please try again." };
   }
 
-  const cookie = createSessionCookie({ id: session.sessionId, token: session.token, userId });
+  const cookie = createSessionCookie({
+    id: session.sessionId,
+    token: session.sessionToken,
+    userId,
+  });
   const cookieStore = await cookies();
   cookieStore.set(cookie.name, cookie.value, cookie.options);
 
   if (authRequest) {
-    const { data: authReq, error: authError } = await getAuthRequest(authRequest);
-    if (!authError && authReq) {
-      const { data: callback, error: cbError } = await createCallback(authRequest, session.sessionId);
-      if (!cbError && callback?.callbackUrl) {
-        redirect(callback.callbackUrl);
-      }
+    const { data: callback, error: cbError } = await createCallback(
+      authRequest,
+      session.sessionId,
+      session.sessionToken
+    );
+    if (!cbError && callback?.callbackUrl) {
+      redirect(callback.callbackUrl);
     }
   }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSession, getAuthRequest, createCallback } from "@/lib/server/zitadel-client";
+import { createSession, createCallback } from "@/lib/server/zitadel-client";
 import { createSessionCookie } from "@/lib/server/session";
 
 export async function POST(request: NextRequest) {
@@ -21,19 +21,20 @@ export async function POST(request: NextRequest) {
       userId,
     });
 
-    const response = NextResponse.json({ redirectUrl: null });
-    response.cookies.set(cookie.name, cookie.value, cookie.options as Record<string, unknown>);
-
+    let redirectUrl: string | null = null;
     if (authRequest) {
-      const { data: callback } = await createCallback(authRequest, session.sessionId);
-      if (callback?.callbackUrl) {
-        return NextResponse.json({ redirectUrl: callback.callbackUrl }, {
-          status: 200,
-          headers: response.headers,
-        });
+      const { data: callback, error: cbError } = await createCallback(
+        authRequest,
+        session.sessionId,
+        session.sessionToken
+      );
+      if (!cbError && callback?.callbackUrl) {
+        redirectUrl = callback.callbackUrl;
       }
     }
 
+    const response = NextResponse.json({ redirectUrl });
+    response.cookies.set(cookie.name, cookie.value, cookie.options as Record<string, unknown>);
     return response;
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
