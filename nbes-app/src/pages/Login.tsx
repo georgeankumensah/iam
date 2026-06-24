@@ -1,17 +1,17 @@
 import { useEffect } from "react";
-import { redirectToLogin, silentLogin } from "../lib/oidc";
+import { useAuth } from "@clet/oidc-client/react";
 
 export default function Login() {
+  const { login, is_authenticated, is_loading } = useAuth();
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("silent") !== "false") {
-      silentLogin();
+    if (is_loading) return;
+    if (is_authenticated) {
+      window.location.href = "/";
     }
-  }, []);
+  }, [is_authenticated, is_loading]);
 
-  const showButton = new URLSearchParams(window.location.search).get("silent") === "false";
-
-  if (!showButton) {
+  if (is_loading) {
     return (
       <div className="login-page">
         <div className="card">
@@ -22,12 +22,14 @@ export default function Login() {
     );
   }
 
+  if (is_authenticated) return null;
+
   return (
     <div className="login-page">
       <div className="card">
         <h1>NBES</h1>
         <p>Notification &amp; Broadcast Exchange Service</p>
-        <button onClick={redirectToLogin} className="btn-primary">
+        <button onClick={() => login()} className="btn-primary">
           Sign in with Zitadel
         </button>
       </div>

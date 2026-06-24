@@ -1,52 +1,28 @@
 import { useEffect, useState } from "react";
-import { jwtDecode } from "jwt-decode";
-import { getStoredToken, logout, fetchUserinfo } from "../lib/oidc";
-
-interface UserClaims {
-  sub: string;
-  email?: string;
-  name?: string;
-  preferred_username?: string;
-}
+import { useAuth, useToken } from "@clet/oidc-client/react";
 
 export default function Home() {
-  const [user, setUser] = useState<UserClaims | null>(null);
+  const { user, is_authenticated, is_loading, logout } = useAuth();
+  const { access_token } = useToken();
   const [userinfo, setUserinfo] = useState<Record<string, unknown> | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) {
+    if (is_loading) return;
+
+    if (!is_authenticated) {
       window.location.href = "/login";
       return;
     }
 
-    try {
-      const claims = jwtDecode<UserClaims>(token.id_token);
-      setUser(claims);
-    } catch {
-      setError("Failed to decode ID token");
-      return;
-    }
+    if (!access_token) return;
 
-    fetchUserinfo(token.access_token)
+    fetch("http://localhost:3000/oidc/v1/userinfo", {
+      headers: { Authorization: `Bearer ${access_token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
       .then(setUserinfo)
       .catch(() => setUserinfo(null));
-  }, []);
-
-  if (error) {
-    return (
-      <div className="login-page">
-        <div className="card card-error">
-          <h1>Error</h1>
-          <p>{error}</p>
-          <button onClick={logout} className="btn-primary">
-            Back to login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  }, [is_authenticated, is_loading, access_token]);
 
   if (!user) {
     return (
@@ -73,9 +49,9 @@ export default function Home() {
           <h2>Profile</h2>
           <table>
             <tbody>
-              <tr><td>User ID</td><td><code>{user.sub}</code></td></tr>
-              <tr><td>Email</td><td>{user.email || "—"}</td></tr>
-              <tr><td>Name</td><td>{user.name || user.preferred_username || "—"}</td></tr>
+              <tr><td>User ID</td><td><code>{user.profile.sub}</code></td></tr>
+              <tr><td>Email</td><td>{user.profile.email || "—"}</td></tr>
+              <tr><td>Name</td><td>{user.profile.name || user.profile.preferred_username || "—"}</td></tr>
             </tbody>
           </table>
         </div>

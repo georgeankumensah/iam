@@ -1,0 +1,44 @@
+{
+  "name": "@clet/oidc-client",
+  "version": "0.1.0",
+  "description": "Shared OIDC auth state manager wrapping oidc-client-ts for CLET IAM public clients",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "default": "./dist/react/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "oidc-client-ts": "^3.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "oidc-client-ts": "^3.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "~6.0.2"
+  },
+  "license": "UNLICENSED",
+  "private": false
+}

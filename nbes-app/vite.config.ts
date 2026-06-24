@@ -7,5 +7,8 @@ export default defineConfig({
     port: 5174,
     host: "0.0.0.0",
   },
+  optimizeDeps: {
+    exclude: ["@clet/oidc-client", "@clet/oidc-client/react"],
+  },
   appType: "spa",
 });

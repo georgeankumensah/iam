@@ -1,0 +1,13 @@
+{
+  "name": "iam-3.0",
+  "private": true,
+  "workspaces": [
+    "ams-app",
+    "nbes-app",
+    "packages/oidc-client"
+  ],
+  "devDependencies": {
+    "react": "^19.2.7",
+    "@types/react": "^19.2.17"
+  }
+}
