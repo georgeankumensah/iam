@@ -14,4 +14,5 @@ urlpatterns = [
     path("delegation/", include("delegation.urls")),
     path("pam/", include("pam.urls")),
     path("health/", include("core.health_urls")),
+    path("api/auth/", include("auth.urls")),
 ]

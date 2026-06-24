@@ -266,16 +266,37 @@ export async function verifyTOTP(sessionId: string, sessionToken: string, code: 
 }
 
 export async function getAuthRequest(authRequestId: string) {
-  return fetchFromZitadel<{
-    id: string;
-    clientId: string;
-    redirectUri: string;
-    scope: string[];
-    hintUserId?: string;
-    loginHint?: string;
-    prompt?: string[];
-    uiLocales?: string[];
-  }>(`/oauth/v2/auth_requests/${authRequestId}`);
+  const result = await fetchFromZitadel<{
+    authRequest: {
+      id: string;
+      clientId: string;
+      redirectUri: string;
+      scope: string[];
+      hintUserId?: string;
+      loginHint?: string;
+      prompt?: string[];
+      uiLocales?: string[];
+    };
+  }>(`/v2/oidc/auth_requests/${authRequestId}`);
+
+  if (result.error || !result.data?.authRequest) {
+    return { data: null, error: result.error || "Auth request not found" };
+  }
+
+  const ar = result.data.authRequest;
+  return {
+    data: {
+      id: ar.id,
+      clientId: ar.clientId,
+      redirectUri: ar.redirectUri,
+      scope: ar.scope,
+      hintUserId: ar.hintUserId,
+      loginHint: ar.loginHint,
+      prompt: ar.prompt,
+      uiLocales: ar.uiLocales,
+    },
+    error: null,
+  };
 }
 
 export async function createCallback(authRequestId: string, sessionId: string, sessionToken: string) {
@@ -288,4 +309,10 @@ export async function createCallback(authRequestId: string, sessionId: string, s
       }),
     }
   );
+}
+
+export async function deleteSession(sessionId: string) {
+  return fetchFromZitadel<null>(`/v2/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+  });
 }

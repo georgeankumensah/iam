@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "lifecycle",
     "audit",
     "console",
+    "api.auth",
 ]
 
 MIDDLEWARE = [

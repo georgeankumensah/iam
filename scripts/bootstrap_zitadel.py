@@ -354,6 +354,123 @@ def setup_login_client(token: str, org_id: str) -> str:
     return login_client_id
 
 
+# ---------------------------------------------------------------------------
+# Step 8 — Create AMS OIDC application
+# ---------------------------------------------------------------------------
+
+def create_ams_app(token: str, project_id: str) -> dict:
+    session = _session()
+    # Check if AMS app already exists
+    resp = session.get(
+        f"{ISSUER}/management/v1/projects/{project_id}/apps",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=15,
+    )
+    if resp.status_code == 200:
+        for app in resp.json().get("result", []):
+            if app.get("appName") == "AMS":
+                print(f"AMS OIDC app already exists  (client_id={app.get('clientId', '')})")
+                return {"client_id": app.get("clientId", ""), "client_secret": ""}
+
+    payload = {
+        "name": "AMS",
+        "redirectUris": [
+            "http://localhost:5173/login/callback",
+            "http://localhost:5173/auth/callback",
+        ],
+        "postLogoutRedirectUris": [
+            "http://localhost:5173/login",
+            "http://localhost:5173",
+        ],
+        "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
+        "grantTypes": [
+            "OIDC_GRANT_TYPE_AUTHORIZATION_CODE",
+            "OIDC_GRANT_TYPE_REFRESH_TOKEN",
+        ],
+        "appType": "OIDC_APP_TYPE_USER_AGENT",
+        "authMethodType": "OIDC_AUTH_METHOD_TYPE_NONE",
+        "version": "OIDC_VERSION_1_0",
+        "devMode": True,
+        "accessTokenType": "OIDC_TOKEN_TYPE_JWT",
+    }
+    resp = session.post(
+        f"{ISSUER}/management/v1/projects/{project_id}/apps/oidc",
+        json=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        timeout=15,
+    )
+    if resp.status_code != 200:
+        die(f"Failed to create AMS OIDC app ({resp.status_code}): {resp.text}")
+    data = resp.json()
+    client_id = data.get("clientId", "")
+    print(f"Created OIDC app: AMS  (client_id={client_id})")
+    return {
+        "client_id": client_id,
+        "client_secret": "",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Step 9 — Create NBES OIDC application
+# ---------------------------------------------------------------------------
+
+def create_nbes_app(token: str, project_id: str) -> dict:
+    session = _session()
+    resp = session.get(
+        f"{ISSUER}/management/v1/projects/{project_id}/apps",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=15,
+    )
+    if resp.status_code == 200:
+        for app in resp.json().get("result", []):
+            if app.get("appName") == "NBES":
+                print(f"NBES OIDC app already exists  (client_id={app.get('clientId', '')})")
+                return {"client_id": app.get("clientId", ""), "client_secret": ""}
+
+    payload = {
+        "name": "NBES",
+        "redirectUris": [
+            "http://localhost:5174/login/callback",
+            "http://localhost:5174/auth/callback",
+        ],
+        "postLogoutRedirectUris": [
+            "http://localhost:5174/login",
+            "http://localhost:5174",
+        ],
+        "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
+        "grantTypes": [
+            "OIDC_GRANT_TYPE_AUTHORIZATION_CODE",
+            "OIDC_GRANT_TYPE_REFRESH_TOKEN",
+        ],
+        "appType": "OIDC_APP_TYPE_USER_AGENT",
+        "authMethodType": "OIDC_AUTH_METHOD_TYPE_NONE",
+        "version": "OIDC_VERSION_1_0",
+        "devMode": True,
+        "accessTokenType": "OIDC_TOKEN_TYPE_JWT",
+    }
+    resp = session.post(
+        f"{ISSUER}/management/v1/projects/{project_id}/apps/oidc",
+        json=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        timeout=15,
+    )
+    if resp.status_code != 200:
+        die(f"Failed to create NBES OIDC app ({resp.status_code}): {resp.text}")
+    data = resp.json()
+    client_id = data.get("clientId", "")
+    print(f"Created OIDC app: NBES  (client_id={client_id})")
+    return {
+        "client_id": client_id,
+        "client_secret": "",
+    }
+
+
 if __name__ == "__main__":
     wait_for_zitadel()
 
@@ -368,6 +485,8 @@ if __name__ == "__main__":
 
     project_id = create_project(token, org_id)
     oidc = create_oidc_app(token, project_id)
+    ams = create_ams_app(token, project_id)
+    nbes = create_nbes_app(token, project_id)
     sa_key_json = create_service_account(token, org_id)
     setup_login_client(token, org_id)
 
@@ -389,4 +508,6 @@ if __name__ == "__main__":
     print(f"  ZITADEL_SERVICE_ACCOUNT_JWT={sa_key_json}")
     print(f"  OIDC_RP_CLIENT_ID={oidc['client_id']}")
     print(f"  OIDC_RP_CLIENT_SECRET={oidc.get('client_secret', '')}")
+    print(f"  AMS_CLIENT_ID={ams['client_id']}")
+    print(f"  NBES_CLIENT_ID={nbes['client_id']}")
     print("=" * 60)

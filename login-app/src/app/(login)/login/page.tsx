@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Card } from "@/components/Card";
@@ -17,6 +17,53 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    async function trySilentAuth() {
+      try {
+        const authResp = await fetch(`/api/auth-request?id=${encodeURIComponent(authRequest)}`);
+        if (!authResp.ok) {
+          setCheckingSession(false);
+          return;
+        }
+        const data = await authResp.json();
+        const prompt = data.prompt || [];
+        if (!prompt.includes("PROMPT_NONE")) {
+          setCheckingSession(false);
+          return;
+        }
+        const silentResp = await fetch("/api/login/silent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ authRequest }),
+        });
+        if (silentResp.ok) {
+          const { redirectUrl } = await silentResp.json();
+          window.location.href = redirectUrl || "/signedin";
+          return;
+        }
+        const redirectUri = data.redirectUri || "";
+        const errParams = new URLSearchParams({
+          error: "login_required",
+          error_description: "Authentication required",
+        });
+        if (redirectUri) {
+          window.location.href = `${redirectUri}?${errParams}`;
+          return;
+        }
+        setCheckingSession(false);
+      } catch {
+        setCheckingSession(false);
+      }
+    }
+
+    if (authRequest) {
+      trySilentAuth();
+    } else {
+      setCheckingSession(false);
+    }
+  }, [authRequest]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,6 +88,14 @@ function LoginContent() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <Card>
+        <div className="text-center py-8 text-gray-500">Checking your session...</div>
+      </Card>
+    );
   }
 
   return (
