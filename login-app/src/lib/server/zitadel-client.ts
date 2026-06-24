@@ -201,9 +201,9 @@ export async function checkUserByEmail(email: string) {
       query: { offset: "0", limit: 100, asc: true },
       queries: [
         {
-          userNameQuery: {
-            userName: email,
-            method: "USER_NAME_QUERY_METHOD_EQUALS",
+          loginNameQuery: {
+            loginName: email,
+            method: "LOGIN_NAME_QUERY_METHOD_EQUALS",
           },
         },
       ],
