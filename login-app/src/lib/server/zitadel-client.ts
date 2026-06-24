@@ -194,16 +194,16 @@ export async function checkUserByLoginName(loginName: string) {
 
 export async function checkUserByEmail(email: string) {
   const result = await fetchFromZitadel<{
-    result: Array<{ userId: string; userName: string; displayName: string }>;
-  }>("/v2/users/_search", {
+    result: Array<{ id: string; userName: string }>;
+  }>("/management/v1/users/_search", {
     method: "POST",
     body: JSON.stringify({
       query: { offset: "0", limit: 100, asc: true },
       queries: [
         {
-          emailQuery: {
-            email,
-            method: "EMAIL_QUERY_METHOD_EQUALS",
+          userNameQuery: {
+            userName: email,
+            method: "USER_NAME_QUERY_METHOD_EQUALS",
           },
         },
       ],
@@ -214,7 +214,7 @@ export async function checkUserByEmail(email: string) {
   const user = result.data?.result?.[0];
   if (!user) return { data: null, error: "User not found" };
   return {
-    data: { userId: user.userId, displayName: user.displayName },
+    data: { userId: user.id, displayName: user.userName },
     error: null,
   };
 }
