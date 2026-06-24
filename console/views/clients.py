@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from audit.emit import emit_event
-from clients.models import OIDCClient
+from clients.models import ClientLifecycleState, OIDCClient
 from console.permissions import IsIAMAdmin
 
 
@@ -93,7 +93,7 @@ def client_promote(request, client_id: str):
     if not client.compliance_gate_passed:
         return Response({"error": "compliance_gate_not_passed"}, status=status.HTTP_400_BAD_REQUEST)
 
-    client.lifecycle_state = OIDCClient.ClientLifecycleState.PRODUCTION_LIVE
+    client.lifecycle_state = ClientLifecycleState.PRODUCTION_LIVE
     client.save(update_fields=["lifecycle_state"])
 
     emit_event(
@@ -105,3 +105,81 @@ def client_promote(request, client_id: str):
     )
 
     return Response({"success": True, "data": {"id": client_id, "state": "production_live"}})
+
+
+def _get_client(client_id):
+    try:
+        return OIDCClient.objects.get(id=client_id), None
+    except OIDCClient.DoesNotExist:
+        from core.responses import error_response
+        return None, error_response(message="not_found", status_code=404)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def client_suspend(request, client_id: str):
+    """Suspend a system: deactivate its ZITADEL app and mark it suspended."""
+    from core.responses import error_response, success_response
+    from core.zitadel import zitadel
+
+    client, err = _get_client(client_id)
+    if err:
+        return err
+    if client.zitadel_project_id and client.zitadel_app_id:
+        try:
+            zitadel().deactivate_app(client.zitadel_project_id, client.zitadel_app_id)
+        except Exception as e:  # noqa: BLE001
+            return error_response(message=f"zitadel error: {e}", status_code=400)
+    client.lifecycle_state = ClientLifecycleState.SUSPENDED
+    client.save(update_fields=["lifecycle_state"])
+    emit_event(actor_user_id=str(request.user.id), action="client.suspended",
+               entity_type="oidc_client", entity_id=str(client.id), channel="console")
+    return success_response(data={"id": str(client.id), "state": client.lifecycle_state})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def client_activate(request, client_id: str):
+    """Reactivate a suspended system."""
+    from core.responses import error_response, success_response
+    from core.zitadel import zitadel
+
+    client, err = _get_client(client_id)
+    if err:
+        return err
+    if client.zitadel_project_id and client.zitadel_app_id:
+        try:
+            zitadel().reactivate_app(client.zitadel_project_id, client.zitadel_app_id)
+        except Exception as e:  # noqa: BLE001
+            return error_response(message=f"zitadel error: {e}", status_code=400)
+    client.lifecycle_state = ClientLifecycleState.PRODUCTION_LIVE
+    client.save(update_fields=["lifecycle_state"])
+    emit_event(actor_user_id=str(request.user.id), action="client.activated",
+               entity_type="oidc_client", entity_id=str(client.id), channel="console")
+    return success_response(data={"id": str(client.id), "state": client.lifecycle_state})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def client_rotate_secret(request, client_id: str):
+    """Rotate a confidential client's secret (returns it once)."""
+    from django.utils import timezone
+
+    from core.responses import error_response, success_response
+    from core.zitadel import zitadel
+
+    client, err = _get_client(client_id)
+    if err:
+        return err
+    if not (client.zitadel_project_id and client.zitadel_app_id):
+        return error_response(message="client has no zitadel app", status_code=400)
+    try:
+        result = zitadel().regenerate_app_secret(client.zitadel_project_id, client.zitadel_app_id)
+    except Exception as e:  # noqa: BLE001
+        return error_response(message=f"zitadel error: {e}", status_code=400)
+    client.secret_rotated_at = timezone.now()
+    client.save(update_fields=["secret_rotated_at"])
+    emit_event(actor_user_id=str(request.user.id), action="client.secret_rotated",
+               entity_type="oidc_client", entity_id=str(client.id), channel="console")
+    return success_response(data={"client_secret": result.get("clientSecret", "")},
+                            message="store this secret now; it will not be shown again")

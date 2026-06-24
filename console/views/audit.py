@@ -5,6 +5,46 @@ from rest_framework.response import Response
 from audit.models import AuditChainAnchor, AuditEvent
 from audit.serializers import AuditEventSerializer
 from console.permissions import IsIAMAdmin
+from core.responses import success_response
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def audit_verify(request):
+    """Verify the audit hash-chain integrity (linkage + content recompute)."""
+    from audit.chain import compute_hash_chain_ref
+
+    from_id = int(request.query_params.get("from_id", 0))
+    anchors = AuditChainAnchor.objects.filter(event_id__gte=from_id).order_by("event_id")
+    events = {e.id: e for e in AuditEvent.objects.filter(id__gte=from_id)}
+
+    failures = []
+    prev_hash = "0" * 64
+    checked = 0
+    for a in anchors:
+        checked += 1
+        if a.previous_hash != prev_hash:
+            failures.append({"event_id": a.event_id, "issue": "broken_link",
+                             "expected_prev": prev_hash, "actual_prev": a.previous_hash})
+        ev = events.get(a.event_id)
+        if ev:
+            canonical = {
+                "id": ev.id, "timestamp": ev.timestamp.isoformat(),
+                "actor_user_id": str(ev.actor_user_id), "action": ev.action,
+                "entity_type": ev.entity_type, "entity_id": ev.entity_id,
+                "result": ev.result, "channel": ev.channel,
+                "correlation_id": ev.correlation_id,
+            }
+            recomputed = compute_hash_chain_ref(a.previous_hash, canonical)
+            if recomputed != a.hash_chain_ref:
+                failures.append({"event_id": a.event_id, "issue": "content_tampered"})
+        prev_hash = a.hash_chain_ref
+
+    return success_response(data={
+        "checked": checked,
+        "intact": not failures,
+        "failures": failures,
+    })
 
 
 @api_view(["GET"])

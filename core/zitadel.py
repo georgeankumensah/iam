@@ -339,6 +339,13 @@ class ZitadelService:
             if e.status not in (404, 400):
                 raise
 
+    def deactivate_user(self, user_id: str) -> None:
+        try:
+            self.request("POST", f"/v2/users/{user_id}/deactivate", {})
+        except ZitadelError as e:
+            if e.status not in (404, 400):
+                raise
+
 
 _service: ZitadelService | None = None
 

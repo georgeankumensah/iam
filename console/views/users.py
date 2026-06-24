@@ -108,6 +108,31 @@ def users_detail(request, user_id: str):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def user_roles(request, user_id: str):
+    """All of a user's role bindings across systems."""
+    from core.responses import error_response, success_response
+    from rbac.models import RoleBinding
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return error_response(message="not_found", status_code=404)
+
+    bindings = RoleBinding.objects.filter(user=user).select_related("role").order_by("role__system_code", "role__role_id")
+    data = [{
+        "binding_id": str(b.id),
+        "system_code": b.role.system_code,
+        "role_id": b.role.role_id,
+        "is_admin": b.role.is_admin,
+        "state": b.state,
+        "effective_from": b.effective_from,
+        "effective_to": b.effective_to,
+    } for b in bindings]
+    return success_response(data=data)
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsIAMAdmin])
 def users_bulk_import(request):

@@ -59,7 +59,7 @@ def provision_system(
             defaults={"name": display, "is_admin": is_admin, "owner_system": code, "is_deprecated": False},
         )
 
-    OIDCClient.objects.update_or_create(
+    obj, _ = OIDCClient.objects.update_or_create(
         client_id=client_id,
         defaults={
             "system_code": code,
@@ -72,4 +72,4 @@ def provision_system(
         },
     )
 
-    return {"client_id": client_id, "project_id": project_id, "app_id": app_id}
+    return {"id": str(obj.id), "client_id": client_id, "project_id": project_id, "app_id": app_id}
