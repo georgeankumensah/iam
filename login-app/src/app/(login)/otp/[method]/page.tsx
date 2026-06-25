@@ -3,9 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
-import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { OtpInput } from "@/components/OtpInput";
 
 function OTPContent() {
   const params = useParams();
@@ -54,13 +54,16 @@ function OTPContent() {
 
   return (
     <Card>
-      <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">{methodLabel} Verification</h2>
-      <p className="mb-6 text-center text-sm text-gray-500">Enter the code sent to your {methodLabel.toLowerCase()}</p>
+      <h1 className="text-center text-[28px] font-bold text-black">{methodLabel} Verification</h1>
+      <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">
+        Enter the 6-digit verification code sent to your {methodLabel.toLowerCase()}.
+      </p>
       <ErrorAlert message={error} className="mb-4" />
-      <form onSubmit={handleSubmit}>
-        <Input label="Verification code" type="text" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          placeholder="000000" inputMode="numeric" autoComplete="one-time-code" autoFocus required />
-        <Button type="submit" loading={loading}>Verify</Button>
+      <form onSubmit={handleSubmit} className="mx-auto max-w-[430px]">
+        <OtpInput value={code} onChange={setCode} invalid={Boolean(error)} disabled={loading} autoFocus />
+        <Button type="submit" loading={loading} disabled={code.length !== 6} className="mx-auto mt-6 !h-12 !w-[280px]" fullWidth={false}>
+          Verify Code
+        </Button>
       </form>
     </Card>
   );

@@ -31,12 +31,12 @@ function LogoutContent() {
   return (
     <Card>
       <div className="text-center">
-        <h2 className="mb-2 text-xl font-semibold text-gray-900">Sign out</h2>
-        <p className="text-gray-500">{status}</p>
+        <h1 className="text-[22px] font-bold text-black">Sign out</h1>
+        <p className="mt-3 text-[15px] text-[#777]">{status}</p>
         {!redirectUri && (
           <a
             href="/login"
-            className="mt-4 inline-block text-sm text-brand-600 hover:text-brand-500"
+            className="mt-4 inline-block text-[13px] text-[#0d6efd] hover:underline"
           >
             Sign in again
           </a>

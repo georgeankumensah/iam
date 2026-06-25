@@ -4,9 +4,9 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { Card } from "@/components/Card";
-import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { OtpInput } from "@/components/OtpInput";
 
 function TotpEnrollContent() {
   const searchParams = useSearchParams();
@@ -68,8 +68,8 @@ function TotpEnrollContent() {
 
   return (
     <Card>
-      <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Set up authenticator app</h2>
-      <p className="mb-4 text-center text-sm text-gray-500">
+      <h1 className="text-center text-[28px] font-bold text-black">Set up authenticator app</h1>
+      <p className="mx-auto mb-6 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">
         Scan this QR code with your authenticator app, then enter the 6-digit code.
       </p>
       <ErrorAlert message={error} className="mb-4" />
@@ -78,31 +78,21 @@ function TotpEnrollContent() {
         {uri ? (
           <QRCodeSVG value={uri} size={180} includeMargin />
         ) : (
-          <div className="text-sm text-gray-400">Generating QR code…</div>
+          <div className="text-[13px] text-[#999]">Generating QR code...</div>
         )}
       </div>
 
       {secret && (
-        <p className="mb-4 break-all text-center text-xs text-gray-500">
+        <p className="mb-5 break-all text-center text-[12px] leading-5 text-[#777]">
           Can&apos;t scan? Enter this key manually:
           <br />
           <code className="font-mono">{secret}</code>
         </p>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <Input
-          label="Verification code"
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          placeholder="000000"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          autoFocus
-          required
-        />
-        <Button type="submit" loading={loading} disabled={!uri}>
+      <form onSubmit={handleSubmit} className="mx-auto max-w-[430px]">
+        <OtpInput value={code} onChange={setCode} invalid={Boolean(error)} disabled={loading || !uri} autoFocus />
+        <Button type="submit" loading={loading} disabled={!uri || code.length !== 6} className="mx-auto mt-6 !h-12 !w-[280px]" fullWidth={false}>
           Verify &amp; continue
         </Button>
       </form>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700" fill="none">
+  <g filter="url(#blur)">
+    <circle cx="450" cy="300" r="245" fill="#c8102e" fill-opacity="0.16" stroke="#c8102e" stroke-opacity="0.36" stroke-width="42"/>
+    <circle cx="450" cy="300" r="170" fill="white" fill-opacity="0.05" stroke="#c8102e" stroke-opacity="0.30" stroke-width="26"/>
+    <path d="M210 500c115 75 365 75 480 0" stroke="#c8102e" stroke-opacity="0.35" stroke-width="58" stroke-linecap="round"/>
+    <path d="M275 545c95 48 255 48 350 0" stroke="#c8102e" stroke-opacity="0.28" stroke-width="30" stroke-linecap="round"/>
+    <rect x="375" y="225" width="150" height="120" rx="10" fill="#c8102e" fill-opacity="0.22"/>
+  </g>
+  <defs>
+    <filter id="blur" x="0" y="0" width="900" height="700" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+</svg>

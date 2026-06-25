@@ -2,8 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Fingerprint, KeyRound } from "lucide-react";
 import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { prepareCreationOptions, serializeCredential } from "@/lib/webauthn";
 
@@ -60,33 +60,37 @@ function SetAuthenticatorContent() {
 
   return (
     <>
-      <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Set up authenticator</h2>
-      <p className="mb-6 text-center text-sm text-gray-500">
-        Choose an authentication method to secure your account
+      <h1 className="text-center text-[28px] font-bold text-black">Set up authenticator</h1>
+      <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">
+        Choose an authentication method to secure your account.
       </p>
       <ErrorAlert message={error} className="mb-4" />
       <div className="space-y-3">
         <button
           onClick={setupPasskey}
           disabled={loading}
-          className="flex w-full items-center gap-4 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 disabled:opacity-50"
+          className="flex w-full items-center gap-4 rounded-[10px] border border-[#d1d5db] bg-white p-4 text-left transition hover:bg-[#f8f8f8] disabled:opacity-50"
         >
-          <span className="text-2xl">🔐</span>
-          <div>
-            <p className="font-medium text-gray-900">Passkey</p>
-            <p className="text-sm text-gray-500">Use biometric or PIN</p>
-          </div>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f7f7f7] text-[#111]">
+            <Fingerprint size={18} />
+          </span>
+          <span>
+            <span className="block text-[14px] font-semibold text-black">Passkey</span>
+            <span className="block text-[12px] leading-5 text-[#777]">Use biometric or PIN</span>
+          </span>
         </button>
         <button
           onClick={setupTOTP}
           disabled={loading}
-          className="flex w-full items-center gap-4 rounded-lg border border-gray-200 p-4 text-left hover:bg-gray-50 disabled:opacity-50"
+          className="flex w-full items-center gap-4 rounded-[10px] border border-[#d1d5db] bg-white p-4 text-left transition hover:bg-[#f8f8f8] disabled:opacity-50"
         >
-          <span className="text-2xl">🔑</span>
-          <div>
-            <p className="font-medium text-gray-900">Authenticator App</p>
-            <p className="text-sm text-gray-500">Use TOTP codes</p>
-          </div>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f7f7f7] text-[#111]">
+            <KeyRound size={18} />
+          </span>
+          <span>
+            <span className="block text-[14px] font-semibold text-black">Authenticator App</span>
+            <span className="block text-[12px] leading-5 text-[#777]">Use TOTP codes</span>
+          </span>
         </button>
       </div>
     </>

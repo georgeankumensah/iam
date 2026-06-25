@@ -3,9 +3,9 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
-import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { OtpInput } from "@/components/OtpInput";
 
 function VerifyContent() {
   const searchParams = useSearchParams();
@@ -34,13 +34,12 @@ function VerifyContent() {
 
   return (
     <Card>
-      <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Verify your email</h2>
-      <p className="mb-6 text-center text-sm text-gray-500">Enter the verification code sent to your email</p>
+      <h1 className="text-center text-[28px] font-bold text-black">Verify your email</h1>
+      <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">Enter the verification code sent to your email.</p>
       <ErrorAlert message={error} className="mb-4" />
-      <form onSubmit={handleSubmit}>
-        <Input label="Verification code" type="text" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)}
-          placeholder="Enter code" autoComplete="one-time-code" autoFocus required />
-        <Button type="submit" loading={loading}>Verify email</Button>
+      <form onSubmit={handleSubmit} className="mx-auto max-w-[430px]">
+        <OtpInput value={verificationCode.replace(/\D/g, "").slice(0, 6)} onChange={setVerificationCode} invalid={Boolean(error)} disabled={loading} autoFocus />
+        <Button type="submit" loading={loading} disabled={verificationCode.length !== 6} className="mx-auto mt-6 !h-12 !w-[280px]" fullWidth={false}>Verify email</Button>
       </form>
     </Card>
   );
