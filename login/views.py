@@ -7,7 +7,7 @@ from django.shortcuts import redirect
 
 logger = logging.getLogger("iam.login")
 
-_LOGIN_APP_URL = "http://localhost:3000"
+_LOGIN_APP_URL = settings.LOGIN_APP_BASE_URL
 
 
 def _login_app_redirect(request):
@@ -54,7 +54,7 @@ def _exchange_code_for_tokens(code: str, redirect_uri: str) -> dict | None:
         data=payload.encode(),
         headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "Host": "localhost:8080",
+            "Host": settings.ZITADEL_EXTERNAL_DOMAIN,
         },
         method="POST",
     )

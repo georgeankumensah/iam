@@ -18,7 +18,9 @@ logger = logging.getLogger("iam.clients.services")
 
 
 def redirect_uris_for_port(port: int) -> tuple[list[str], list[str]]:
-    base = f"http://localhost:{port}"
+    import os
+    scheme_host = os.environ.get("PUBLIC_CLIENT_BASE_URL", "http://localhost")
+    base = f"{scheme_host}:{port}"
     return (
         [f"{base}/login/callback", f"{base}/auth/callback"],
         [f"{base}/login", base],

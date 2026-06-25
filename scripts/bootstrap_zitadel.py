@@ -34,6 +34,10 @@ ISSUER = f"{ZITADEL_HOST.rstrip('/')}"
 # to send `Host: localhost:8080` so Zitadel resolves the instance correctly.
 ZITADEL_EXTERNAL_DOMAIN = "localhost:8080"
 
+AMS_APP_URL = os.getenv("AMS_APP_URL", "http://localhost:5173")
+NBES_APP_URL = os.getenv("NBES_APP_URL", "http://localhost:5174")
+DJANGO_APP_URL = os.getenv("DJANGO_APP_URL", "http://localhost:8000")
+
 
 def die(msg: str) -> None:
     print(f"ERROR: {msg}", file=sys.stderr)
@@ -170,12 +174,12 @@ def create_oidc_app(token: str, project_id: str) -> dict:
     payload = {
         "name": "IAM SPA",
         "redirectUris": [
-            "http://localhost:5173/login/callback",
-            "http://localhost:8000/login/callback",
+            f"{AMS_APP_URL}/login/callback",
+            f"{DJANGO_APP_URL}/login/callback",
         ],
         "postLogoutRedirectUris": [
-            "http://localhost:5173/login",
-            "http://localhost:8000/login",
+            f"{AMS_APP_URL}/login",
+            f"{DJANGO_APP_URL}/login",
         ],
         "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
         "grantTypes": [
@@ -375,12 +379,12 @@ def create_ams_app(token: str, project_id: str) -> dict:
     payload = {
         "name": "AMS",
         "redirectUris": [
-            "http://localhost:5173/login/callback",
-            "http://localhost:5173/auth/callback",
+            f"{AMS_APP_URL}/login/callback",
+            f"{AMS_APP_URL}/auth/callback",
         ],
         "postLogoutRedirectUris": [
-            "http://localhost:5173/login",
-            "http://localhost:5173",
+            f"{AMS_APP_URL}/login",
+            AMS_APP_URL,
         ],
         "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
         "grantTypes": [
@@ -433,12 +437,12 @@ def create_nbes_app(token: str, project_id: str) -> dict:
     payload = {
         "name": "NBES",
         "redirectUris": [
-            "http://localhost:5174/login/callback",
-            "http://localhost:5174/auth/callback",
+            f"{NBES_APP_URL}/login/callback",
+            f"{NBES_APP_URL}/auth/callback",
         ],
         "postLogoutRedirectUris": [
-            "http://localhost:5174/login",
-            "http://localhost:5174",
+            f"{NBES_APP_URL}/login",
+            NBES_APP_URL,
         ],
         "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
         "grantTypes": [
@@ -568,4 +572,7 @@ if __name__ == "__main__":
     print(f"  OIDC_RP_CLIENT_SECRET={oidc.get('client_secret', '')}")
     print(f"  AMS_CLIENT_ID={ams['client_id']}")
     print(f"  NBES_CLIENT_ID={nbes['client_id']}")
+    print(f"  AMS_APP_URL={AMS_APP_URL}")
+    print(f"  NBES_APP_URL={NBES_APP_URL}")
+    print(f"  DJANGO_APP_URL={DJANGO_APP_URL}")
     print("=" * 60)

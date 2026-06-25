@@ -16,7 +16,7 @@ export default function Home() {
 
     if (!access_token) return;
 
-    fetch("http://localhost:3000/oidc/v1/userinfo", {
+    fetch(`${import.meta.env.VITE_OIDC_AUTHORITY}/oidc/v1/userinfo`, {
       headers: { Authorization: `Bearer ${access_token}` },
     })
       .then((res) => (res.ok ? res.json() : null))

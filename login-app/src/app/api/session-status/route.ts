@@ -8,10 +8,9 @@ import { getSessionAsService } from "@/lib/server/zitadel-client";
 // cookie is cleared, so this returns { authenticated: false } and the other
 // apps sign themselves out. Origins must be explicitly allow-listed because
 // the request is credentialed (cannot use "*").
-const ALLOWED_ORIGINS = new Set([
-  "http://localhost:5173", // AMS
-  "http://localhost:5174", // NBES
-]);
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_CORS_ORIGINS || "http://localhost:5173,http://localhost:5174").split(",")
+);
 
 function corsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = { "Cache-Control": "no-store" };
