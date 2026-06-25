@@ -32,7 +32,7 @@ function SetAuthenticatorContent() {
 
       const { passkeyId, publicKey } = await resp.json();
       const credential = (await navigator.credentials.create({
-        publicKey: prepareCreationOptions({ publicKey }),
+        publicKey: prepareCreationOptions(publicKey),
       })) as PublicKeyCredential;
 
       const verifyResp = await fetch("/api/authenticator/passkey/verify", {

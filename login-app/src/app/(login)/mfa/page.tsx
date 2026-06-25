@@ -2,22 +2,32 @@
 
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { KeyRound, Mail, Smartphone } from "lucide-react";
+import { Fingerprint, KeyRound, Mail, Smartphone } from "lucide-react";
 import { Card } from "@/components/Card";
 
 function MFAContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const authRequest = searchParams.get("authRequest") || "";
+  const allowedFactors = new Set(
+    (searchParams.get("factors") || "")
+      .split(",")
+      .map((factor) => factor.trim())
+      .filter(Boolean)
+  );
 
   const factors = [
+    { id: "passkey", label: "Passkey", description: "Use your device biometric or PIN", icon: Fingerprint },
     { id: "totp", label: "Authenticator App", description: "Use a TOTP code from your authenticator app", icon: KeyRound },
     { id: "sms", label: "SMS Code", description: "Receive a code via SMS", icon: Smartphone },
     { id: "email", label: "Email Code", description: "Receive a code via email", icon: Mail },
   ];
+  const visibleFactors = allowedFactors.size
+    ? factors.filter((factor) => allowedFactors.has(factor.id))
+    : factors;
 
   function handleSelect(factorId: string) {
-    const path = factorId === "totp" ? `/mfa/totp` : `/otp/${factorId}`;
+    const path = factorId === "passkey" ? "/passkey" : factorId === "totp" ? `/mfa/totp` : `/otp/${factorId}`;
     router.push(`${path}?authRequest=${authRequest}`);
   }
 
@@ -28,7 +38,7 @@ function MFAContent() {
         Choose a verification method
       </p>
       <div className="space-y-3">
-        {factors.map((factor) => {
+        {visibleFactors.map((factor) => {
           const Icon = factor.icon;
           return (
             <button
