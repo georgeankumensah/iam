@@ -20,18 +20,21 @@ function IdpContent() {
 
   return (
     <Card>
-      <h2 className="mb-6 text-center text-xl font-semibold text-gray-900">Sign in with</h2>
+      <h1 className="text-center text-[28px] font-bold text-black">Sign in with</h1>
+      <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">
+        Choose an identity provider to continue.
+      </p>
       <div className="space-y-3">
         {IDPS.map((idp) => (
           <button key={idp.id} onClick={() => handleIdpLogin(idp.id)}
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-bold">{idp.icon}</span>
+            className="flex w-full items-center justify-center gap-3 rounded-[10px] border border-[#d1d5db] bg-white px-4 py-3 text-[13px] font-semibold text-[#111] transition hover:bg-[#f8f8f8] focus:border-[#111] focus:outline-none">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f7f7f7] text-[11px] font-bold">{idp.icon}</span>
             {idp.label}
           </button>
         ))}
       </div>
       <div className="mt-6 text-center">
-        <a href={`/login?authRequest=${authRequest}`} className="text-sm text-brand-600 hover:text-brand-500">
+        <a href={`/login?authRequest=${authRequest}`} className="text-[13px] text-[#0d6efd] hover:underline">
           Sign in with email and password
         </a>
       </div>

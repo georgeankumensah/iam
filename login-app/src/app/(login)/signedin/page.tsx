@@ -2,6 +2,9 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Ban, Check } from "lucide-react";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 
 function SignedInContent() {
   const searchParams = useSearchParams();
@@ -30,44 +33,47 @@ function SignedInContent() {
 
   if (denied) {
     return (
-      <div className="rounded-lg bg-white p-8 text-center shadow-md">
-        <div className="mb-4 text-4xl">🚫</div>
-        <h2 className="mb-2 text-xl font-semibold text-gray-900">No access to this application</h2>
-        <p className="text-gray-500">
+      <Card>
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <Ban size={22} />
+        </div>
+        <h1 className="text-center text-[22px] font-bold text-black">No access to this application</h1>
+        <p className="mx-auto mt-3 max-w-[430px] text-center text-[15px] leading-6 text-[#777]">
           You signed in, but you haven&apos;t been granted a role in this system. Ask your
           administrator to invite you.
         </p>
-        <a href="/logout" className="mt-4 inline-block text-sm text-brand-600 hover:text-brand-500">
+        <a href="/logout" className="mt-5 block text-center text-[13px] text-[#0d6efd] hover:underline">
           Sign out
         </a>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-lg bg-white p-8 text-center shadow-md">
-      <div className="mb-4 text-4xl">✓</div>
-      <h2 className="mb-2 text-xl font-semibold text-gray-900">Signed in successfully</h2>
+    <Card>
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f0f7ef] text-[#1b7f3a]">
+        <Check size={24} strokeWidth={3} />
+      </div>
+      <h1 className="text-center text-[22px] font-bold text-black">Signed in successfully</h1>
       {authRequest ? (
-        <p className="text-gray-500">You are now signed in. Redirecting...</p>
+        <p className="mt-3 text-center text-[15px] text-[#777]">You are now signed in. Redirecting...</p>
       ) : (
         <>
-          <p className="text-gray-500">Open the IAM admin console to invite users into systems.</p>
-          <a
-            href="/admin"
-            className="mt-5 inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
+          <p className="mx-auto mt-3 max-w-[380px] text-center text-[15px] leading-6 text-[#777]">
+            Open the IAM admin console to invite users into systems.
+          </p>
+          <Button type="button" className="mx-auto mt-5" fullWidth={false} onClick={() => { window.location.href = "/admin"; }}>
             Open admin console
-          </a>
+          </Button>
         </>
       )}
-    </div>
+    </Card>
   );
 }
 
 export default function SignedInPage() {
   return (
-    <Suspense fallback={<div className="rounded-lg bg-white p-8 text-center shadow-md"><p>Loading...</p></div>}>
+    <Suspense fallback={<Card><p className="text-center text-[14px] text-[#777]">Loading...</p></Card>}>
       <SignedInContent />
     </Suspense>
   );

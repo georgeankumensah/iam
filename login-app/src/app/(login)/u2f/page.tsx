@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { KeyRound } from "lucide-react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
@@ -50,10 +51,13 @@ function U2FContent() {
 
   return (
     <Card>
-      <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Security Key</h2>
-      <p className="mb-6 text-center text-sm text-gray-500">Insert and tap your security key</p>
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f7f7f7] text-[#111]">
+        <KeyRound size={22} />
+      </div>
+      <h1 className="text-center text-[28px] font-bold text-black">Security Key</h1>
+      <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">Insert and tap your security key.</p>
       <ErrorAlert message={error} className="mb-4" />
-      <Button onClick={handleU2F} loading={loading}>{loading ? "Waiting for key..." : "Tap Security Key"}</Button>
+      <Button onClick={handleU2F} loading={loading} className="mx-auto max-w-[360px]">{loading ? "Waiting for key..." : "Tap Security Key"}</Button>
     </Card>
   );
 }

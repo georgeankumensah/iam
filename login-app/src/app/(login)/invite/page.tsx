@@ -3,9 +3,9 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
-import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { PasswordInput } from "@/components/PasswordInput";
 
 function InviteContent() {
   const searchParams = useSearchParams();
@@ -52,35 +52,42 @@ function InviteContent() {
   if (!userId || !code) {
     return (
       <Card>
-        <div className="text-center text-gray-500">This invitation link is invalid or incomplete.</div>
+        <div className="text-center text-[14px] text-[#777]">This invitation link is invalid or incomplete.</div>
       </Card>
     );
   }
 
   return (
     <Card>
-      <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Accept your invitation</h2>
-      <p className="mb-6 text-center text-sm text-gray-500">Set a password to activate your account.</p>
+      <div className="text-center">
+        <h1 className="text-[28px] font-bold text-black">Complete Your Account Setup</h1>
+        <p className="mx-auto mt-3 max-w-[500px] text-[15px] leading-6 text-[#999]">
+          You have been invited to access a CLET system. Set your password to activate your account.
+        </p>
+      </div>
+      <div className="mx-auto mt-7 rounded-[8px] bg-[#f7f7f7] px-5 py-3 text-left">
+        <p className="text-[12px] uppercase tracking-wide text-[#777]">Invitation</p>
+        <p className="mt-1 break-all text-[13px] font-medium text-black">User ID: {userId}</p>
+      </div>
       <ErrorAlert message={error} className="mb-4" />
-      <form onSubmit={handleSubmit}>
-        <Input
-          label="New password"
-          type="password"
+      <form onSubmit={handleSubmit} className="mx-auto mt-7 max-w-[500px] space-y-4">
+        <p className="text-[15px] font-semibold text-black">Set Your Password</p>
+        <PasswordInput
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
           autoComplete="new-password"
           autoFocus
           required
         />
-        <Input
-          label="Confirm password"
-          type="password"
+        <PasswordInput
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
+          placeholder="Confirm Password"
           autoComplete="new-password"
           required
         />
-        <Button type="submit" loading={loading}>
+        <Button type="submit" loading={loading} disabled={!password || !confirm}>
           Activate account
         </Button>
       </form>

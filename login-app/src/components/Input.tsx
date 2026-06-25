@@ -4,27 +4,29 @@ import { clsx } from "clsx";
 import { forwardRef } from "react";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
   error?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, id, className, ...props }, ref) => {
-    const inputId = id || label.toLowerCase().replace(/\s+/g, "-");
+    const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : props.name) || "input";
 
     return (
       <div className="mb-4">
-        <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700">
-          {label}
-        </label>
+        {label ? (
+          <label htmlFor={inputId} className="mb-1.5 block text-[13px] font-medium text-[#555]">
+            {label}
+          </label>
+        ) : null}
         <input
           ref={ref}
           id={inputId}
           className={clsx(
-            "block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500",
+            "block h-10 w-full rounded-[7px] border bg-white px-4 text-sm text-[#111111] shadow-none outline-none transition placeholder:text-[#8a8a8a] focus:ring-0 disabled:cursor-not-allowed disabled:bg-[#f5f5f5] disabled:text-[#8a8a8a]",
             error
-              ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-              : "border-gray-300 focus:border-brand-500",
+              ? "border-red-400 focus:border-red-500"
+              : "border-[#d1d5db] focus:border-[#111111]",
             className
           )}
           aria-invalid={error ? "true" : "false"}

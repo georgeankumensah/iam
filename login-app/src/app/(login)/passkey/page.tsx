@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Fingerprint } from "lucide-react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
@@ -55,17 +56,20 @@ function PasskeyContent() {
 
   return (
     <Card>
-      <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Sign in with Passkey</h2>
-      <p className="mb-6 text-center text-sm text-gray-500">
-        Use your device&apos;s biometric or PIN to sign in securely
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f7f7f7] text-[#111]">
+        <Fingerprint size={24} />
+      </div>
+      <h1 className="text-center text-[28px] font-bold text-black">Sign in with Passkey</h1>
+      <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">
+        Use your device&apos;s biometric or PIN to sign in securely.
       </p>
       <ErrorAlert message={error} className="mb-4" />
-      <div className="space-y-4">
+      <div className="mx-auto max-w-[360px] space-y-4">
         <Button onClick={handlePasskeyLogin} loading={loading}>
           {loading ? "Checking..." : "Use Passkey"}
         </Button>
         <div className="text-center">
-          <a href={`/login?authRequest=${authRequest}`} className="text-sm text-brand-600 hover:text-brand-500">
+          <a href={`/login?authRequest=${authRequest}`} className="text-[13px] text-[#0d6efd] hover:underline">
             Use password instead
           </a>
         </div>

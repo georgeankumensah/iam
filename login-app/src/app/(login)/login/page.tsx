@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
 import { Card } from "@/components/Card";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { PasswordInput } from "@/components/PasswordInput";
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -15,7 +15,6 @@ function LoginContent() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -104,62 +103,51 @@ function LoginContent() {
   if (checkingSession) {
     return (
       <Card>
-        <div className="text-center py-8 text-gray-500">Checking your session...</div>
+        <div className="py-8 text-center text-[14px] text-[#777]">Checking your session...</div>
       </Card>
     );
   }
 
   return (
     <Card>
-      <h2 className="mb-6 text-center text-xl font-semibold text-gray-900">Sign in</h2>
+      <div className="text-center">
+        <h1 className="text-[22px] font-bold text-black">Welcome Back</h1>
+        <p className="mx-auto mt-3 max-w-[420px] text-[15px] leading-6 text-[#999]">
+          Sign in to your account to access CLET services securely from this browser.
+        </p>
+      </div>
       <ErrorAlert message={error} className="mb-4" />
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="mx-auto mt-8 max-w-[460px] space-y-4">
         <Input
-          label="Email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
+          placeholder="Email"
           autoComplete="email"
           autoFocus
           required
         />
-        <div className="mb-4">
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
-            Password
+        <PasswordInput
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          autoComplete="current-password"
+          required
+        />
+        <div className="flex items-center justify-between text-[12px]">
+          <label className="flex items-center gap-2 text-[#777]">
+            <input type="checkbox" className="h-3.5 w-3.5 rounded accent-[#111]" />
+            Remember me
           </label>
-          <div className="relative">
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              required
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 pr-10 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              tabIndex={-1}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-        </div>
-        <div className="mb-4 text-right">
           <a
             href={`/password-reset?authRequest=${authRequest}`}
-            className="text-sm text-brand-600 hover:text-brand-500"
+            className="text-[#111] hover:underline"
           >
-            Forgot password?
+            Forgot your password?
           </a>
         </div>
-        <Button type="submit" loading={loading}>
-          Sign in
+        <Button type="submit" loading={loading} className="mt-7">
+          Sign In
         </Button>
       </form>
 
