@@ -12,7 +12,7 @@ import json
 import logging
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import jwt
@@ -35,7 +35,7 @@ class _HostHeaderAdapter(requests.adapters.HTTPAdapter):
         self._host = host_header
         super().__init__(**kwargs)
 
-    def add_headers(self, request, **kwargs):
+    def add_headers(self, request, **_kwargs):
         request.headers["Host"] = self._host
 
 
@@ -59,7 +59,7 @@ class ZitadelService:
                 return self._token
             key = json.loads(self.key_path.read_text())
             pk = serialization.load_pem_private_key(key["key"].encode(), password=None)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             assertion = jwt.encode(
                 {
                     "iss": key["userId"],
@@ -212,10 +212,15 @@ class ZitadelService:
         return result[0] if result else None
 
     def set_user_grant_roles(self, user_id: str, grant_id: str, role_keys: list[str]) -> None:
-        self.request(
-            "PUT", f"/management/v1/users/{user_id}/grants/{grant_id}",
-            {"roleKeys": role_keys},
-        )
+        try:
+            self.request(
+                "PUT", f"/management/v1/users/{user_id}/grants/{grant_id}",
+                {"roleKeys": role_keys},
+            )
+        except ZitadelError as e:
+            if e.status == 400 and "not been changed" in e.body:
+                return
+            raise
 
     def remove_user_grant(self, user_id: str, grant_id: str) -> None:
         try:

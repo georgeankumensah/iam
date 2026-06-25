@@ -184,8 +184,13 @@ def _send_invite(z, zitadel_user_id: str, return_code: bool) -> str | None:
 def resend_invitation(invitation: Invitation, return_code=False) -> str | None:
     z = zitadel()
     code = _send_invite(z, invitation.zitadel_user_id, return_code)
+    invitation.status = Invitation.Status.PENDING
     invitation.expires_at = timezone.now() + timedelta(hours=settings.INVITATION_TTL_HOURS)
-    invitation.save(update_fields=["expires_at", "updated_at"])
+    invitation.accepted_at = None
+    if invitation.user and invitation.user.status != UserStatus.ACTIVE:
+        invitation.user.status = UserStatus.PRE_ACTIVE
+        invitation.user.save(update_fields=["status"])
+    invitation.save(update_fields=["status", "expires_at", "accepted_at", "updated_at"])
     return code
 
 

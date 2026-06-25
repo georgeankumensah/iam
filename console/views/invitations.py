@@ -28,6 +28,7 @@ def _serialize(inv: Invitation) -> dict:
         "email": inv.email,
         "system_code": inv.system_code,
         "role_ids": inv.role_ids,
+        "zitadel_user_id": inv.zitadel_user_id,
         "as_admin": inv.as_admin,
         "status": inv.status,
         "expires_at": inv.expires_at,
@@ -155,6 +156,121 @@ def my_admin_systems(request):
             ],
         })
     return Response({"success": True, "data": out})
+
+
+def _internal_actor(request):
+    if request.headers.get("X-Internal-Secret") != settings.ONBOARDING_INTERNAL_SECRET:
+        return None, Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+    from accounts.models import User
+
+    uid = request.data.get("actor_zitadel_user_id") or request.query_params.get("actor_zitadel_user_id")
+    if not uid:
+        return None, Response({"success": False, "error": "missing actor"}, status=status.HTTP_400_BAD_REQUEST)
+
+    actor = User.objects.filter(zitadel_user_id=uid, status="active").first()
+    if not actor:
+        return None, Response({"success": False, "error": "actor_not_found"}, status=status.HTTP_403_FORBIDDEN)
+    return actor, None
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def internal_admin_systems(request):
+    """Internal bridge for the login-app admin console."""
+    actor, err = _internal_actor(request)
+    if err:
+        return err
+
+    out = []
+    for code in manageable_systems(actor):
+        client = OIDCClient.objects.filter(system_code=code).first()
+        roles = Role.objects.filter(system_code=code, is_deprecated=False).order_by("role_id")
+        out.append({
+            "system_code": code,
+            "name": client.name if client else code,
+            "roles": [
+                {"id": str(r.id), "role_id": r.role_id, "name": r.name, "is_admin": r.is_admin}
+                for r in roles
+            ],
+        })
+    return Response({"success": True, "data": out})
+
+
+@api_view(["GET", "POST"])
+@permission_classes([AllowAny])
+def internal_invitations(request):
+    """Internal bridge for login-app invite creation/listing.
+
+    The browser never receives the internal secret. The login-app server passes
+    the authenticated ZITADEL user id from its session cookie; IAM still checks
+    whether that user can manage the requested system.
+    """
+    actor, err = _internal_actor(request)
+    if err:
+        return err
+
+    if request.method == "GET":
+        allowed = manageable_systems(actor)
+        qs = Invitation.objects.filter(system_code__in=allowed).order_by("-created_at")[:25]
+        return Response({"success": True, "data": [_serialize(i) for i in qs]})
+
+    email = (request.data.get("email") or "").strip().lower()
+    system_code = (request.data.get("system_code") or "").strip()
+    role_ids = request.data.get("role_ids") or []
+
+    if not email or not system_code:
+        return Response(
+            {"success": False, "error": "email and system_code are required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not can_manage_system_invites(actor, system_code):
+        return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        inv, code = invite_user(
+            email=email,
+            system_code=system_code,
+            role_ids=role_ids,
+            invited_by=actor,
+            return_code=bool(request.data.get("return_code", True)),
+        )
+    except SoDViolation as e:
+        return Response(
+            {"success": False, "error": "ROLE_CONFLICT", "message": str(e)},
+            status=status.HTTP_409_CONFLICT,
+        )
+    except OnboardingError as e:
+        return Response({"success": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    data = _serialize(inv)
+    if code:
+        data["invite_code"] = code
+    return Response({"success": True, "data": data}, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def internal_invitation_resend(request, invite_id: str):
+    """Internal bridge for login-app invite resend."""
+    actor, err = _internal_actor(request)
+    if err:
+        return err
+
+    try:
+        inv = Invitation.objects.get(id=invite_id)
+    except Invitation.DoesNotExist:
+        return Response({"success": False, "error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if not can_manage_system_invites(actor, inv.system_code):
+        return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+    code = resend_invitation(inv, return_code=True)
+    inv.refresh_from_db()
+    data = _serialize(inv)
+    if code:
+        data["invite_code"] = code
+    return Response({"success": True, "data": data})
 
 
 @api_view(["POST"])
