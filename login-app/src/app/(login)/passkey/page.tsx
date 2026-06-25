@@ -10,6 +10,7 @@ import { prepareRequestOptions, serializeAssertion } from "@/lib/webauthn";
 function PasskeyContent() {
   const searchParams = useSearchParams();
   const authRequest = searchParams.get("authRequest") || "";
+  const signedInUrl = authRequest ? `/signedin?authRequest=${encodeURIComponent(authRequest)}` : "/signedin";
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -44,7 +45,7 @@ function PasskeyContent() {
       if (!verifyResp.ok) throw new Error("Passkey verification failed");
 
       const { redirectUrl } = await verifyResp.json();
-      window.location.href = redirectUrl || "/signedin";
+      window.location.href = redirectUrl || signedInUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Passkey authentication failed");
     } finally {

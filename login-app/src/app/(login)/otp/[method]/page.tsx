@@ -12,6 +12,7 @@ function OTPContent() {
   const searchParams = useSearchParams();
   const method = params.method as string;
   const authRequest = searchParams.get("authRequest") || "";
+  const signedInUrl = authRequest ? `/signedin?authRequest=${encodeURIComponent(authRequest)}` : "/signedin";
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,7 @@ function OTPContent() {
       });
       if (!resp.ok) { const data = await resp.json(); throw new Error(data.error || `Invalid ${methodLabel} code`); }
       const { redirectUrl } = await resp.json();
-      window.location.href = redirectUrl || "/signedin";
+      window.location.href = redirectUrl || signedInUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally { setLoading(false); }

@@ -10,6 +10,7 @@ import { ErrorAlert } from "@/components/ErrorAlert";
 function MfaTotpContent() {
   const searchParams = useSearchParams();
   const authRequest = searchParams.get("authRequest") || "";
+  const signedInUrl = authRequest ? `/signedin?authRequest=${encodeURIComponent(authRequest)}` : "/signedin";
 
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ function MfaTotpContent() {
       }
 
       const { redirectUrl } = await resp.json();
-      window.location.href = redirectUrl || "/signedin";
+      window.location.href = redirectUrl || signedInUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {

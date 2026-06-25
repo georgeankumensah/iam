@@ -10,6 +10,7 @@ import { prepareRequestOptions, serializeAssertion } from "@/lib/webauthn";
 function U2FContent() {
   const searchParams = useSearchParams();
   const authRequest = searchParams.get("authRequest") || "";
+  const signedInUrl = authRequest ? `/signedin?authRequest=${encodeURIComponent(authRequest)}` : "/signedin";
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +42,7 @@ function U2FContent() {
       if (!verifyResp.ok) throw new Error("Security key verification failed");
 
       const { redirectUrl } = await verifyResp.json();
-      window.location.href = redirectUrl || "/signedin";
+      window.location.href = redirectUrl || signedInUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Security key verification failed");
     } finally { setLoading(false); }

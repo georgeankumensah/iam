@@ -11,6 +11,7 @@ import { ErrorAlert } from "@/components/ErrorAlert";
 function LoginContent() {
   const searchParams = useSearchParams();
   const authRequest = searchParams.get("authRequest") || "";
+  const signedInUrl = authRequest ? `/signedin?authRequest=${encodeURIComponent(authRequest)}` : "/signedin";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +41,7 @@ function LoginContent() {
         });
         if (silentResp.ok) {
           const { redirectUrl } = await silentResp.json();
-          window.location.href = redirectUrl || "/signedin";
+          window.location.href = redirectUrl || signedInUrl;
           return;
         }
         const redirectUri = data.redirectUri || "";
@@ -92,7 +93,7 @@ function LoginContent() {
         window.location.href = `/authenticator/set?authRequest=${authRequest}`;
         return;
       }
-      window.location.href = redirectUrl || "/signedin";
+      window.location.href = redirectUrl || signedInUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password");
     } finally {

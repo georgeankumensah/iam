@@ -191,6 +191,7 @@ RATE_LIMIT_MAX_ATTEMPTS = 20
 RATE_LIMIT_PATHS = ["/login/", "/password-reset/"]
 
 BOOTSTRAP_ADMIN_EMAIL = os.environ.get("BOOTSTRAP_ADMIN_EMAIL", "admin@clet.gov.gh")
+BOOTSTRAP_ZITADEL_ADMIN_EMAIL = os.environ.get("BOOTSTRAP_ZITADEL_ADMIN_EMAIL", "admin@zitadel.localhost")
 
 AUDIT_RETENTION_YEARS = 10
 AUDIT_OUTBOX_MAX_RETRIES = 5

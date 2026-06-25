@@ -11,6 +11,7 @@ import { ErrorAlert } from "@/components/ErrorAlert";
 function TotpEnrollContent() {
   const searchParams = useSearchParams();
   const authRequest = searchParams.get("authRequest") || "";
+  const signedInUrl = authRequest ? `/signedin?authRequest=${encodeURIComponent(authRequest)}` : "/signedin";
 
   const [uri, setUri] = useState("");
   const [secret, setSecret] = useState("");
@@ -57,7 +58,7 @@ function TotpEnrollContent() {
         window.location.href = redirectTo;
         return;
       }
-      window.location.href = redirectUrl || "/signedin";
+      window.location.href = redirectUrl || signedInUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
