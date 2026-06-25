@@ -54,6 +54,45 @@ def _resolve_roles(system_code: str, role_ids: list[str]) -> list[Role]:
     return roles
 
 
+def _ensure_invitation_bindings(invitation: Invitation) -> None:
+    """Ensure accepted invitations have concrete approved bindings.
+
+    Bindings are normally created when the invitation is issued. Re-checking at
+    acceptance makes the flow resilient to older invitations or partial sync
+    failures, and guarantees the ZITADEL grant receives real role keys.
+    """
+    if not invitation.user:
+        return
+
+    roles = list(
+        Role.objects.filter(
+            id__in=invitation.role_ids,
+            system_code=invitation.system_code,
+            is_deprecated=False,
+        )
+    )
+    if not roles:
+        logger.warning(
+            "accept_invitation: no valid roles for invitation %s (%s)",
+            invitation.id,
+            invitation.system_code,
+        )
+        return
+
+    for role in roles:
+        RoleBinding.objects.get_or_create(
+            role=role,
+            user=invitation.user,
+            state=RoleBinding.BindingState.APPROVED,
+            defaults={
+                "approver": invitation.invited_by,
+                "justification": f"accepted invitation into {invitation.system_code}",
+            },
+        )
+
+    sync_user_system_grant(invitation.user, invitation.system_code)
+
+
 def invite_user(*, email, system_code, role_ids, invited_by, return_code=False):
     """Provision (or reuse) the user, assign role(s), and issue an invite code.
 
@@ -184,6 +223,7 @@ def accept_invitation(*, zitadel_user_id: str, code: str, password: str) -> dict
         inv.accepted_at = timezone.now()
         inv.save(update_fields=["status", "accepted_at", "updated_at"])
         if inv.user:
+            _ensure_invitation_bindings(inv)
             inv.user.status = UserStatus.ACTIVE
             inv.user.save(update_fields=["status"])
         client = _system_client(inv.system_code)

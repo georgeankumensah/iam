@@ -370,7 +370,7 @@ export async function createCallback(authRequestId: string, sessionId: string, s
     {
       method: "POST",
       body: JSON.stringify({
-        session: { session_id: sessionId, session_token: sessionToken },
+        session: { sessionId, sessionToken },
       }),
     }
   );

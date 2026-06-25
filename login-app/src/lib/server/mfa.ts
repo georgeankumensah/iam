@@ -1,6 +1,12 @@
 import "server-only";
-import { getLoginSettings, listUserAuthMethods, createCallback } from "./zitadel-client";
+import { getLoginSettings, listUserAuthMethods } from "./zitadel-client";
 import type { SessionData } from "./session";
+
+const DJANGO_BASE_URL = process.env.IAM_DJANGO_BASE_URL || "http://localhost:8000";
+
+export function djangoCompletionUrl(authRequest: string): string {
+  return `${DJANGO_BASE_URL}/login/complete?authRequest=${encodeURIComponent(authRequest)}`;
+}
 
 // Maps a Zitadel authentication-method-type to the login-app route that
 // challenges it. Only second-factor methods are listed (password/idp excluded).
@@ -64,9 +70,8 @@ export async function decideNextStep(userId: string, authRequest: string): Promi
 // is no auth request, e.g. a direct visit to the login app).
 export async function completeAuthentication(
   authRequest: string,
-  session: SessionData
+  _session: SessionData
 ): Promise<string | null> {
   if (!authRequest) return null;
-  const { data } = await createCallback(authRequest, session.id, session.token);
-  return data?.callbackUrl ?? null;
+  return djangoCompletionUrl(authRequest);
 }

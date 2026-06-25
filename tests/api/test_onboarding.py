@@ -100,6 +100,41 @@ def test_accept_invitation_activates_user(admin_client, ams_system, mock_zitadel
     mock_zitadel.set_password_with_code.assert_called_once()
 
 
+def test_accept_invitation_repairs_missing_role_binding(ams_system, mock_zitadel, settings):
+    _, user_role, _ = ams_system
+    user = User.objects.create(
+        email="repair@clet.gov.gh",
+        status="pre_active",
+        zitadel_user_id="100000000000000010",
+    )
+    Invitation.objects.create(
+        email="repair@clet.gov.gh",
+        system_code="ams",
+        user=user,
+        zitadel_user_id="100000000000000010",
+        role_ids=[str(user_role.id)],
+        status="pending",
+    )
+
+    from rest_framework.test import APIClient
+
+    client = APIClient()
+    resp = client.post(
+        "/v1/onboarding/accept",
+        {"zitadel_user_id": "100000000000000010", "code": "RESETCODE", "password": "Test1234!"},
+        format="json",
+        HTTP_X_INTERNAL_SECRET=settings.ONBOARDING_INTERNAL_SECRET,
+    )
+
+    assert resp.status_code == 200, resp.content
+    assert RoleBinding.objects.filter(user=user, role=user_role, state="approved").exists()
+    mock_zitadel.upsert_user_grant.assert_called_with(
+        "100000000000000010",
+        "proj-ams",
+        ["user"],
+    )
+
+
 def test_accept_rejects_bad_secret(settings):
     from rest_framework.test import APIClient
     client = APIClient()

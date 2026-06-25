@@ -6,10 +6,11 @@ import { useSearchParams } from "next/navigation";
 function SignedInContent() {
   const searchParams = useSearchParams();
   const authRequest = searchParams.get("authRequest") || "";
-  const [denied, setDenied] = useState(false);
+  const [denied, setDenied] = useState(searchParams.get("error") === "access_denied");
 
   useEffect(() => {
     async function handleRedirect() {
+      if (denied) return;
       if (!authRequest) return;
       try {
         const resp = await fetch("/api/signedin", {
@@ -25,7 +26,7 @@ function SignedInContent() {
       } catch { /* continue showing signed-in page */ }
     }
     handleRedirect();
-  }, [authRequest]);
+  }, [authRequest, denied]);
 
   if (denied) {
     return (

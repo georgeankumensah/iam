@@ -12,6 +12,7 @@ Then copy each printed client_id into the matching SPA's src/lib/oidc.ts.
 
 import time
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from clients.services import provision_system, redirect_uris_for_port
@@ -110,7 +111,7 @@ class Command(BaseCommand):
                     return False
                 time.sleep(3)
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **options):
         if options["wait"] and not self._wait_for_zitadel(options["wait"]):
             msg = "ZITADEL not reachable; skipping setup_systems (re-run later)."
             if options["best_effort"]:
@@ -138,5 +139,45 @@ class Command(BaseCommand):
                 f"[{sys_def['code']}] project={res['project_id']} "
                 f"app={res['app_id']} client_id={res['client_id']}"
             ))
+            self._grant_bootstrap_admin(sys_def["code"])
 
         self.stdout.write("\nUpdate each SPA's src/lib/oidc.ts CLIENT_ID with the value above.")
+
+    def _grant_bootstrap_admin(self, system_code: str) -> None:
+        email = settings.BOOTSTRAP_ZITADEL_ADMIN_EMAIL
+        if not email:
+            return
+
+        from accounts.models import User, UserStatus
+        from rbac.models import Role, RoleBinding
+        from rbac.services import sync_user_system_grant
+
+        z = zitadel()
+        z_user = z.find_user_by_email(email)
+        if not z_user:
+            self.stdout.write(self.style.WARNING(f"[{system_code}] bootstrap admin not found in ZITADEL: {email}"))
+            return
+
+        user, _ = User.objects.update_or_create(
+            email=email,
+            defaults={
+                "zitadel_user_id": z_user["userId"],
+                "user_type": "staff",
+                "status": UserStatus.ACTIVE,
+                "is_staff": True,
+                "is_superuser": True,
+            },
+        )
+
+        role = Role.objects.filter(system_code=system_code, is_admin=True, is_deprecated=False).first()
+        if not role:
+            self.stdout.write(self.style.WARNING(f"[{system_code}] no admin role to grant to {email}"))
+            return
+
+        RoleBinding.objects.get_or_create(
+            role=role,
+            user=user,
+            state=RoleBinding.BindingState.APPROVED,
+            defaults={"approver": user, "justification": "Bootstrap ZITADEL superadmin"},
+        )
+        sync_user_system_grant(user, system_code)

@@ -331,6 +331,15 @@ class ZitadelService:
             if e.status != 404:
                 raise
 
+    def create_oidc_callback(self, auth_request_id: str, session_id: str, session_token: str) -> str:
+        """Complete a ZITADEL OIDC auth request with an authenticated session."""
+        data = self.request(
+            "POST",
+            f"/v2/oidc/auth_requests/{auth_request_id}",
+            {"session": {"sessionId": session_id, "sessionToken": session_token}},
+        )
+        return data.get("callbackUrl", "")
+
     def terminate_user_sessions(self, user_id: str) -> None:
         # Re-evaluate access after a role change by ending the user's sessions.
         try:

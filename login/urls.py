@@ -16,6 +16,7 @@ urlpatterns = [
     path("accounts", views.login_view, name="accounts"),
     path("logout", views.login_view, name="logout"),
     path("signedin", views.login_view, name="signedin"),
+    path("complete", views.complete_view, name="login_complete"),
     path("verify", views.login_view, name="verify"),
     path("authenticator/set", views.login_view, name="authenticator_set"),
     path("device", views.login_view, name="device"),

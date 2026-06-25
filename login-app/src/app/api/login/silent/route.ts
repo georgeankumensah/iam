@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSessionAsService, createCallback } from "@/lib/server/zitadel-client";
+import { getSessionAsService } from "@/lib/server/zitadel-client";
+import { djangoCompletionUrl } from "@/lib/server/mfa";
 import { parseSessionCookie } from "@/lib/server/session";
 
 export async function POST(request: NextRequest) {
@@ -23,12 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "login_required" }, { status: 401 });
     }
 
-    const { data: callback } = await createCallback(authRequest, session.id, session.token);
-    if (!callback?.callbackUrl) {
-      return NextResponse.json({ error: "callback_failed" }, { status: 500 });
-    }
-
-    return NextResponse.json({ redirectUrl: callback.callbackUrl });
+    return NextResponse.json({ redirectUrl: djangoCompletionUrl(authRequest) });
   } catch {
     return NextResponse.json({ error: "login_required" }, { status: 401 });
   }

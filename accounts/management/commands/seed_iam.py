@@ -10,7 +10,7 @@ logger = logging.getLogger("iam.management.seed")
 class Command(BaseCommand):
     help = "Seed the IAM database with initial roles and admin user"
 
-    def handle(self, *args, **options):
+    def handle(self, *_args, **_options):
         from accounts.models import User, ZitadelUserSync
         from audit.emit import emit_event
         from rbac.models import Role, RoleBinding
@@ -116,7 +116,7 @@ class Command(BaseCommand):
                 role=admin_role,
                 user=user,
                 defaults={
-                    "state": RoleBinding.BindingState.EFFECTIVE,
+                    "state": RoleBinding.BindingState.APPROVED,
                     "approver": user,
                     "effective_from": timezone.now(),
                     "justification": "Bootstrap seed",
