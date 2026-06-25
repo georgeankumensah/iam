@@ -153,6 +153,14 @@ CELERY_BEAT_SCHEDULE: dict[str, object] = {
         "task": "accounts.tasks.expire_invitations",
         "schedule": 3600.0,  # hourly
     },
+    "expire-delegations": {
+        "task": "delegation.tasks.expire_delegations",
+        "schedule": 60.0,  # per-minute: SRS-IAM-F04 auto-expire at end_at
+    },
+    "forward-audit-outbox": {
+        "task": "audit.forwarder.forward_outbox",
+        "schedule": 300.0,  # every 5 min: SRS-IAM-N04 forward chain events to System 22
+    },
 }
 
 ZITADEL_HOST = os.environ.get("ZITADEL_HOST", "https://zitadel.iam.clet.gov.gh")
