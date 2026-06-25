@@ -5,10 +5,10 @@ import Callback from "./pages/Callback";
 import Home from "./pages/Home";
 
 const config: ZitadelConfigInput = {
-  authority: "http://localhost:3000",
-  client_id: "378842413810057220",
-  redirect_uri: "http://localhost:5174/login/callback",
-  post_logout_redirect_uri: "http://localhost:5174/login?silent=false",
+  authority: import.meta.env.VITE_OIDC_AUTHORITY as string,
+  client_id: import.meta.env.VITE_OIDC_CLIENT_ID as string,
+  redirect_uri: import.meta.env.VITE_OIDC_REDIRECT_URI as string,
+  post_logout_redirect_uri: import.meta.env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI as string,
 };
 
 function getRoute() {
