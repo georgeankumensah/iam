@@ -6,5 +6,4 @@ export { useToken } from "./use-token";
 export type { UseTokenResult } from "./use-token";
 export { ProtectedRoute } from "./protected-route";
 export type { ProtectedRouteProps } from "./protected-route";
-export { AuthContext } from "./auth-context";
-export type { AuthContextValue } from "./auth-context";
+export { CrossTabSync } from "./cross-tab-sync";

@@ -17,3 +17,6 @@ kubeconfig*
 *.key
 .DS_Store
 celerybeat-schedule
+zitadel/machinekey/zitadel-admin-sa.json
+zitadel/machinekey/login-client.pat
+
