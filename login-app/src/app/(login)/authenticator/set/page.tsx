@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { prepareCreationOptions, serializeCredential } from "@/lib/webauthn";
 
 function SetAuthenticatorContent() {
   const searchParams = useSearchParams();
@@ -29,18 +30,22 @@ function SetAuthenticatorContent() {
 
       if (!resp.ok) throw new Error("Failed to start passkey registration");
 
-      const options = await resp.json();
-      const credential = await navigator.credentials.create({ publicKey: options.publicKey });
+      const { passkeyId, publicKey } = await resp.json();
+      const credential = (await navigator.credentials.create({
+        publicKey: prepareCreationOptions({ publicKey }),
+      })) as PublicKeyCredential;
 
       const verifyResp = await fetch("/api/authenticator/passkey/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ authRequest, credential }),
+        body: JSON.stringify({ passkeyId, credential: serializeCredential(credential) }),
       });
 
       if (!verifyResp.ok) throw new Error("Passkey registration failed");
 
-      window.location.href = "/signedin";
+      // Passkey registered; satisfy the session's MFA requirement via the
+      // normal passkey challenge.
+      window.location.href = `/passkey?authRequest=${authRequest}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Setup failed");
     } finally {
@@ -48,24 +53,9 @@ function SetAuthenticatorContent() {
     }
   }
 
-  async function setupTOTP() {
-    setError(null);
-    setLoading(true);
-
-    try {
-      const resp = await fetch("/api/authenticator/totp/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ authRequest }),
-      });
-
-      if (!resp.ok) throw new Error("Failed to setup TOTP");
-      window.location.href = "/signedin";
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed");
-    } finally {
-      setLoading(false);
-    }
+  function setupTOTP() {
+    // TOTP enrollment needs a QR + code-entry step, handled on its own page.
+    window.location.href = `/authenticator/totp?authRequest=${authRequest}`;
   }
 
   return (

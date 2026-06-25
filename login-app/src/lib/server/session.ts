@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 const SESSION_COOKIE = "zitadel-session";
 
-interface SessionData {
+export interface SessionData {
   id: string;
   token: string;
   userId: string;
@@ -31,4 +31,19 @@ export function parseSessionCookie(cookieValue: string | undefined): SessionData
   } catch {
     return null;
   }
+}
+
+// Writes the session cookie onto a response. Used after each step that rotates
+// the session token (password, every MFA factor) so the cookie always holds
+// the latest token.
+export function setSessionCookie(
+  response: {
+    cookies: {
+      set: (name: string, value: string, options: Record<string, unknown>) => void;
+    };
+  },
+  session: SessionData
+): void {
+  const cookie = createSessionCookie(session);
+  response.cookies.set(cookie.name, cookie.value, cookie.options);
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkUserByEmail, createSession, createCallback } from "@/lib/server/zitadel-client";
-import { createSessionCookie } from "@/lib/server/session";
+import { checkUserByEmail, createSession } from "@/lib/server/zitadel-client";
+import { setSessionCookie } from "@/lib/server/session";
+import { decideNextStep, completeAuthentication } from "@/lib/server/mfa";
 
 const FAIL = { error: "Invalid email or password" };
 
@@ -16,26 +17,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(FAIL, { status: 401 });
     }
 
-    const cookie = createSessionCookie({
+    const session = {
       id: sessionResult.data.sessionId,
       token: sessionResult.data.sessionToken,
       userId,
-    });
+    };
+
+    // Password verified. Decide whether MFA is required before completing.
+    const step = await decideNextStep(userId, authRequest || "");
 
     let redirectUrl: string | null = null;
-    if (authRequest) {
-      const { data: callback } = await createCallback(
-        authRequest,
-        sessionResult.data.sessionId,
-        sessionResult.data.sessionToken
-      );
-      if (callback?.callbackUrl) {
-        redirectUrl = callback.callbackUrl;
-      }
+    if (step.next === "done") {
+      redirectUrl = await completeAuthentication(authRequest || "", session);
     }
 
-    const response = NextResponse.json({ redirectUrl });
-    response.cookies.set(cookie.name, cookie.value, cookie.options as Record<string, unknown>);
+    // Persist the (possibly partial) session so the MFA/enrollment routes can
+    // continue it; the cookie token is refreshed again after each factor.
+    const response = NextResponse.json({
+      next: step.next,
+      factors: step.factors,
+      redirectUrl,
+    });
+    setSessionCookie(response, session);
     return response;
   } catch {
     return NextResponse.json(FAIL, { status: 401 });

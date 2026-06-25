@@ -1,17 +1,38 @@
 from django.urls import path
 
-from .views import audit, clients, roles, users
+from .views import access_reviews, audit, clients, delegations, roles, systems, users
 
 urlpatterns = [
     path("users", users.users_list, name="admin_users"),
     path("users/bulk-import", users.users_bulk_import, name="admin_users_bulk"),
     path("users/<uuid:user_id>", users.users_detail, name="admin_user_detail"),
+    path("users/<uuid:user_id>/roles", users.user_roles, name="admin_user_roles"),
     path("roles", roles.roles_list, name="admin_roles"),
     path("roles/<uuid:role_id>", roles.role_detail, name="admin_role_detail"),
     path("roles/<uuid:role_id>/bind", roles.role_bind, name="admin_role_bind"),
+    path("roles/<uuid:role_id>/unbind", roles.role_unbind, name="admin_role_unbind"),
+    path("role-bindings", roles.bindings_queue, name="admin_bindings_queue"),
+    path("role-bindings/<uuid:binding_id>/approve", roles.binding_approve, name="admin_binding_approve"),
+    path("role-bindings/<uuid:binding_id>/reject", roles.binding_reject, name="admin_binding_reject"),
     path("clients", clients.clients_list, name="admin_clients"),
     path("clients/<uuid:client_id>", clients.client_detail, name="admin_client_detail"),
     path("clients/<uuid:client_id>/promote", clients.client_promote, name="admin_client_promote"),
+    path("clients/<uuid:client_id>/suspend", clients.client_suspend, name="admin_client_suspend"),
+    path("clients/<uuid:client_id>/activate", clients.client_activate, name="admin_client_activate"),
+    path("clients/<uuid:client_id>/rotate-secret", clients.client_rotate_secret, name="admin_client_rotate_secret"),
+    path("systems", systems.systems_list, name="admin_systems"),
+    path("systems/<str:system_code>/roles", systems.system_roles, name="admin_system_roles"),
+    path("systems/<str:system_code>/roles/<str:role_id>", systems.system_role_detail, name="admin_system_role_detail"),
+    path("systems/<str:system_code>/role-check", systems.system_role_check, name="admin_system_role_check"),
+    path("access-reviews", access_reviews.campaigns, name="admin_access_reviews"),
+    path("access-reviews/<uuid:campaign_id>", access_reviews.campaign_detail, name="admin_access_review_detail"),
+    path("access-reviews/<uuid:campaign_id>/items", access_reviews.campaign_items, name="admin_access_review_items"),
+    path("access-reviews/<uuid:campaign_id>/complete", access_reviews.campaign_complete, name="admin_access_review_complete"),
+    path("access-reviews/<uuid:campaign_id>/export", access_reviews.campaign_export, name="admin_access_review_export"),
+    path("access-review-items/<uuid:item_id>/decide", access_reviews.item_decide, name="admin_access_review_decide"),
+    path("delegations", delegations.delegations_list, name="admin_delegations"),
+    path("delegations/<uuid:delegation_id>/revoke", delegations.delegation_revoke, name="admin_delegation_revoke"),
     path("audit", audit.audit_search, name="admin_audit"),
+    path("audit/verify", audit.audit_verify, name="admin_audit_verify"),
     path("audit/export", audit.audit_export, name="admin_audit_export"),
 ]

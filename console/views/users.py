@@ -108,23 +108,72 @@ def users_detail(request, user_id: str):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def user_roles(request, user_id: str):
+    """All of a user's role bindings across systems."""
+    from core.responses import error_response, success_response
+    from rbac.models import RoleBinding
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return error_response(message="not_found", status_code=404)
+
+    bindings = RoleBinding.objects.filter(user=user).select_related("role").order_by("role__system_code", "role__role_id")
+    data = [{
+        "binding_id": str(b.id),
+        "system_code": b.role.system_code,
+        "role_id": b.role.role_id,
+        "is_admin": b.role.is_admin,
+        "state": b.state,
+        "effective_from": b.effective_from,
+        "effective_to": b.effective_to,
+    } for b in bindings]
+    return success_response(data=data)
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsIAMAdmin])
 def users_bulk_import(request):
     serializer = BulkImportSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
+    from console.onboarding import invite_user
+    from rbac.models import Role
+
     results: list[dict] = []
     for user_data in serializer.validated_data["users"]:
+        email = user_data.get("email", "")
+        system_code = (user_data.get("system_code") or "").strip()
+        role_code = (user_data.get("role") or "").strip()
         try:
-            zitadel_result = create_user_in_zitadel(user_data["email"])
-            user = User.objects.create(**user_data)
-            if zitadel_result and zitadel_result.get("userId"):
-                user.zitadel_user_id = zitadel_result["userId"]
-                user.save(update_fields=["zitadel_user_id"])
-            results.append({"email": user_data["email"], "status": "created", "id": str(user.id)})
+            if system_code:
+                # Onboard into a system: creates the user, grants the role, and
+                # emails an invite — the same path as a single invitation.
+                role_ids = []
+                if role_code:
+                    role = Role.objects.filter(system_code=system_code, role_id=role_code).first()
+                    if role:
+                        role_ids = [str(role.id)]
+                inv, _ = invite_user(
+                    email=email, system_code=system_code, role_ids=role_ids,
+                    invited_by=request.user, return_code=False,
+                )
+                results.append({"email": email, "status": "invited", "id": str(inv.id)})
+            else:
+                zitadel_result = create_user_in_zitadel(email)
+                user = User.objects.create(
+                    email=email,
+                    user_type=user_data.get("user_type", "external"),
+                    metadata=user_data.get("metadata", {}),
+                )
+                if zitadel_result and zitadel_result.get("userId"):
+                    user.zitadel_user_id = zitadel_result["userId"]
+                    user.save(update_fields=["zitadel_user_id"])
+                results.append({"email": email, "status": "created", "id": str(user.id)})
         except Exception as e:
-            results.append({"email": user_data["email"], "status": "error", "error": str(e)})
+            results.append({"email": email, "status": "error", "error": str(e)})
 
     emit_event(
         actor_user_id=str(request.user.id),

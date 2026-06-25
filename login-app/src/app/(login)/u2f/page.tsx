@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { prepareRequestOptions, serializeAssertion } from "@/lib/webauthn";
 
 function U2FContent() {
   const searchParams = useSearchParams();
@@ -16,15 +17,33 @@ function U2FContent() {
     setError(null);
     setLoading(true);
     try {
+      if (!window.PublicKeyCredential) {
+        throw new Error("Security keys are not supported on this browser");
+      }
+
       const resp = await fetch("/api/u2f/assertion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ authRequest }),
       });
-      if (!resp.ok) throw new Error("Failed to start U2F verification");
-      window.location.href = "/signedin";
+      if (!resp.ok) throw new Error("Failed to start security key verification");
+
+      const options = await resp.json();
+      const credential = (await navigator.credentials.get({
+        publicKey: prepareRequestOptions(options),
+      })) as PublicKeyCredential;
+
+      const verifyResp = await fetch("/api/u2f/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authRequest, assertion: serializeAssertion(credential) }),
+      });
+      if (!verifyResp.ok) throw new Error("Security key verification failed");
+
+      const { redirectUrl } = await verifyResp.json();
+      window.location.href = redirectUrl || "/signedin";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "U2F verification failed");
+      setError(err instanceof Error ? err.message : "Security key verification failed");
     } finally { setLoading(false); }
   }
 

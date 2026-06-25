@@ -76,8 +76,10 @@ def scim_user_detail(request, user_id: str):
             return Response({"status": "updated"})
 
         elif request.method == "DELETE":
+            # Leaver flow: disable the IdP user AND terminate active sessions.
             if user.zitadel_user_id:
                 provisioner.deactivate_user(str(user.zitadel_user_id))
+                provisioner.terminate_sessions(str(user.zitadel_user_id))
             user.status = "disabled"
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)

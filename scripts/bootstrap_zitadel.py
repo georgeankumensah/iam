@@ -471,6 +471,46 @@ def create_nbes_app(token: str, project_id: str) -> dict:
     }
 
 
+def grant_login_client_role(token: str, user_id: str) -> None:
+    """Grant the instance-level IAM_LOGIN_CLIENT role.
+
+    The Login V2 app authenticates to Zitadel as this user and calls the
+    `/v2/oidc/auth_requests` API to finalise the OIDC flow and obtain the
+    callback URL that redirects the browser back to the client app. That API
+    requires the dedicated `IAM_LOGIN_CLIENT` role — `IAM_OWNER` is NOT
+    sufficient and the call returns 403 (AUTH-AWfge) without it, which leaves
+    the user stuck on the login page after a successful sign-in.
+    """
+    session = _session()
+    # The user is already an instance member (IAM_OWNER) from init, so update
+    # the membership to add the role; fall back to creating it if missing.
+    resp = session.put(
+        f"{ISSUER}/admin/v1/members/{user_id}",
+        json={"roles": ["IAM_OWNER", "IAM_LOGIN_CLIENT"]},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        timeout=15,
+    )
+    if resp.status_code == 200:
+        print("Granted IAM_LOGIN_CLIENT instance role to login service user.")
+        return
+    resp = session.post(
+        f"{ISSUER}/admin/v1/members",
+        json={"userId": user_id, "roles": ["IAM_LOGIN_CLIENT"]},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        timeout=15,
+    )
+    if resp.status_code in (200, 409):
+        print("Granted IAM_LOGIN_CLIENT instance role to login service user.")
+    else:
+        die(f"Failed to grant IAM_LOGIN_CLIENT ({resp.status_code}): {resp.text}")
+
+
 if __name__ == "__main__":
     wait_for_zitadel()
 
@@ -489,6 +529,24 @@ if __name__ == "__main__":
     nbes = create_nbes_app(token, project_id)
     sa_key_json = create_service_account(token, org_id)
     setup_login_client(token, org_id)
+    grant_login_client_role(token, key_data["userId"])
+
+    # Enforce mandatory MFA and enable the supported second factors.
+    try:
+        import configure_mfa
+        configure_mfa.main()
+    except Exception as exc:  # noqa: BLE001 - bootstrap should not hard-fail on this
+        print(f"WARN: MFA configuration step failed: {exc}")
+
+    # Point ZITADEL at the dev SMTP sink (Mailpit) so invite emails send.
+    try:
+        import configure_smtp
+        configure_smtp.main()
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARN: SMTP configuration step failed: {exc}")
+
+    print("\nNext: provision per-system projects/roles and the OIDCClient mirror:")
+    print("  docker compose exec django python manage.py setup_systems")
 
     # Restart login container so it picks up the PAT file
     import subprocess

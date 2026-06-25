@@ -148,12 +148,27 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Accra"
-CELERY_BEAT_SCHEDULE: dict[str, object] = {}
+CELERY_BEAT_SCHEDULE: dict[str, object] = {
+    "expire-invitations": {
+        "task": "accounts.tasks.expire_invitations",
+        "schedule": 3600.0,  # hourly
+    },
+}
 
 ZITADEL_HOST = os.environ.get("ZITADEL_HOST", "https://zitadel.iam.clet.gov.gh")
 ZITADEL_PROJECT_ID = os.environ.get("ZITADEL_PROJECT_ID", "")
 ZITADEL_ORG_ID = os.environ.get("ZITADEL_ORG_ID", "")
 ZITADEL_SERVICE_ACCOUNT_JWT = os.environ.get("ZITADEL_SERVICE_ACCOUNT_JWT", "")
+# Machine-key (service account) used by the Django ZITADEL service client for the
+# JWT-bearer grant, plus the instance's external domain sent as the Host header
+# so ZITADEL resolves the right instance.
+ZITADEL_MACHINE_KEY_PATH = os.environ.get("ZITADEL_MACHINE_KEY_PATH", "/machinekey/zitadel-admin-sa.json")
+ZITADEL_EXTERNAL_DOMAIN = os.environ.get("ZITADEL_EXTERNAL_DOMAIN", "localhost:8080")
+
+# Onboarding / invitations
+LOGIN_APP_BASE_URL = os.environ.get("LOGIN_APP_BASE_URL", "http://localhost:3000")
+ONBOARDING_INTERNAL_SECRET = os.environ.get("ONBOARDING_INTERNAL_SECRET", "change-me-internal")
+INVITATION_TTL_HOURS = int(os.environ.get("INVITATION_TTL_HOURS", "168"))
 
 OIDC_RP_CLIENT_ID = os.environ.get("OIDC_RP_CLIENT_ID", "")
 OIDC_RP_CLIENT_SECRET = os.environ.get("OIDC_RP_CLIENT_SECRET", "")

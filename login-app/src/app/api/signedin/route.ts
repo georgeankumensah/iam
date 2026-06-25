@@ -14,9 +14,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ redirectUrl: null });
     }
 
-    const { data: callback } = await createCallback(authRequest, session.id, session.token);
+    const { data: callback, error } = await createCallback(authRequest, session.id, session.token);
     if (callback?.callbackUrl) {
       return NextResponse.json({ redirectUrl: callback.callbackUrl });
+    }
+
+    // The user authenticated but is not authorised for this application (no role
+    // grant on its project — projectRoleCheck). Surface it instead of hanging.
+    if (error && error.includes("GrantRequired")) {
+      return NextResponse.json({ redirectUrl: null, error: "access_denied" });
     }
 
     return NextResponse.json({ redirectUrl: null });

@@ -14,6 +14,10 @@ class ClientLifecycleState(models.TextChoices):
 
 class OIDCClient(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Short, stable code for the downstream system (e.g. "ams", "nbes"); ties the
+    # client to its rbac.Role catalogue (Role.system_code) and onboarding routes.
+    system_code = models.CharField(max_length=50, blank=True, default="", db_index=True)
+    name = models.CharField(max_length=255, blank=True, default="")
     zitadel_project_id = models.CharField(max_length=255, blank=True, default="")
     zitadel_app_id = models.CharField(max_length=255, blank=True, default="")
     client_id = models.CharField(max_length=255, unique=True, db_index=True)

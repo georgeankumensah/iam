@@ -57,6 +57,13 @@ export async function proxy(request: NextRequest) {
     responseHeaders.set("X-Frame-Options", "deny");
   }
 
+  if (request.nextUrl.pathname.startsWith("/ui/")) {
+    const to = request.nextUrl.pathname.replace(/^\/ui\/v2\/login\/login/, "/login") || "/";
+    const url = new URL(to, request.url);
+    url.search = request.nextUrl.search;
+    return NextResponse.redirect(url);
+  }
+
   const proxyPaths = ["/.well-known/", "/oauth/", "/oidc/", "/idps/callback/", "/saml/", "/assets/"];
   const shouldProxy = proxyPaths.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
 

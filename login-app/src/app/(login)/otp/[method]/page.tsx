@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
 import { Input } from "@/components/Input";
@@ -16,6 +16,22 @@ function OTPContent() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const methodLabel = method === "sms" ? "SMS" : "Email";
+
+  // Ask Zitadel to send the code as soon as the challenge page opens.
+  useEffect(() => {
+    fetch(`/api/otp/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "request", authRequest }),
+    })
+      .then(async (resp) => {
+        if (!resp.ok) {
+          const data = await resp.json();
+          setError(data.error || `Could not send ${methodLabel} code`);
+        }
+      })
+      .catch(() => setError(`Could not send ${methodLabel} code`));
+  }, [method, authRequest, methodLabel]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

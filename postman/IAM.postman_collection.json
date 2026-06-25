@@ -1,0 +1,1947 @@
+{
+  "info": {
+    "name": "CLET IAM (System 19) API",
+    "description": "All IAM endpoints. Set {{access_token}} (a ZITADEL user JWT) after logging in; collection-level Bearer auth applies it. SCIM uses {{scim_token}}, onboarding accept uses {{internal_secret}}. Many requests capture response values into environment variables (invite_id, user_id, client_id, campaign_id, ...).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Docs & Health",
+      "item": [
+        {
+          "name": "OpenAPI schema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/schema",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "schema"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/docs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "docs"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/live",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                "live"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/ready",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Self-service (/v1/me)",
+      "item": [
+        {
+          "name": "Get my profile + roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "me"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "me"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+233200000000\",\n  \"metadata\": {\n    \"department\": \"IT\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "My apps (app switcher)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/me/apps",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "me",
+                "apps"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "My sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/me/sessions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "me",
+                "sessions"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (Array.isArray(d) && d[0] && d[0].id !== undefined && Array.isArray(d) && d[0] && d[0].id !== null) pm.environment.set('session_id', Array.isArray(d) && d[0] && d[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Terminate a session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/me/sessions/{{session_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "me",
+                "sessions",
+                "{{session_id}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Systems I can invite into",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/me/admin-systems",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "me",
+                "admin-systems"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Onboarding & Invitations",
+      "item": [
+        {
+          "name": "Create invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/invitations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "invitations"
+              ]
+            },
+            "description": "Invite a user into a system with role(s). return_code:true returns the reset code for dev.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{invitee_email}}\",\n  \"system_code\": \"{{system_code}}\",\n  \"role_ids\": [\n    \"{{role_uuid}}\"\n  ],\n  \"return_code\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.id !== undefined && d.id !== null) pm.environment.set('invite_id', d.id);",
+                  "if (d.invite_code !== undefined && d.invite_code !== null) pm.environment.set('invite_code', d.invite_code);",
+                  "if (d.email !== undefined && d.email !== null) pm.environment.set('invitee_email', d.email);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List invitations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/invitations?system_code={{system_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "invitations"
+              ],
+              "query": [
+                {
+                  "key": "system_code",
+                  "value": "{{system_code}}"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Get invitation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/invitations/{{invite_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "invitations",
+                "{{invite_id}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Resend invitation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/invitations/{{invite_id}}/resend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "invitations",
+                "{{invite_id}}",
+                "resend"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"return_code\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.invite_code !== undefined && d.invite_code !== null) pm.environment.set('invite_code', d.invite_code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revoke invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/invitations/{{invite_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "invitations",
+                "{{invite_id}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Accept invitation (internal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Internal-Secret",
+                "value": "{{internal_secret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/onboarding/accept",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "onboarding",
+                "accept"
+              ]
+            },
+            "description": "Called server-to-server by the login-app. Sets the password and activates the user.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"zitadel_user_id\": \"{{zitadel_user_id}}\",\n  \"code\": \"{{invite_code}}\",\n  \"password\": \"Test1234!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Users",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/users?page=1&page_size=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "users"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@clet.gov.gh\",\n  \"user_type\": \"staff\",\n  \"status\": \"pre_active\",\n  \"metadata\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.id !== undefined && d.id !== null) pm.environment.set('user_id', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+233244000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get user roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/users/{{user_id}}/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}",
+                "roles"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Deactivate user",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Bulk import users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/users/bulk-import",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "users",
+                "bulk-import"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"users\": [\n    {\n      \"email\": \"bulk1@clet.gov.gh\",\n      \"system_code\": \"ams\",\n      \"role\": \"institution_contact\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Systems & Clients",
+      "item": [
+        {
+          "name": "List systems",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/systems",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "systems"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Create system (provision)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/clients",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "clients"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"system_code\": \"demo\",\n  \"name\": \"DEMO\",\n  \"frontend_port\": 5190,\n  \"roles\": [\n    {\n      \"role_id\": \"admin\",\n      \"name\": \"Admin\",\n      \"is_admin\": true\n    },\n    {\n      \"role_id\": \"member\",\n      \"name\": \"Member\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.id !== undefined && d.id !== null) pm.environment.set('client_db_id', d.id);",
+                  "if (d.client_id !== undefined && d.client_id !== null) pm.environment.set('client_id', d.client_id);",
+                  "if (d.project_id !== undefined && d.project_id !== null) pm.environment.set('project_id', d.project_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/clients",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "clients"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Get client",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/clients/{{client_db_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "clients",
+                "{{client_db_id}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Promote client",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/clients/{{client_db_id}}/promote",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "clients",
+                "{{client_db_id}}",
+                "promote"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Suspend client",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/clients/{{client_db_id}}/suspend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "clients",
+                "{{client_db_id}}",
+                "suspend"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Activate client",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/clients/{{client_db_id}}/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "clients",
+                "{{client_db_id}}",
+                "activate"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Rotate client secret",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/clients/{{client_db_id}}/rotate-secret",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "clients",
+                "{{client_db_id}}",
+                "rotate-secret"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "List system roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/systems/{{system_code}}/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "systems",
+                "{{system_code}}",
+                "roles"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Add system role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/systems/{{system_code}}/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "systems",
+                "{{system_code}}",
+                "roles"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role_id\": \"inspector\",\n  \"name\": \"Inspector\",\n  \"is_admin\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Deprecate system role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/systems/{{system_code}}/roles/inspector",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "systems",
+                "{{system_code}}",
+                "roles",
+                "inspector"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Toggle role-check (gating)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/systems/{{system_code}}/role-check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "systems",
+                "{{system_code}}",
+                "role-check"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Roles & Bindings",
+      "item": [
+        {
+          "name": "List roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/roles?system_code={{system_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "roles"
+              ],
+              "query": [
+                {
+                  "key": "system_code",
+                  "value": "{{system_code}}"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (Array.isArray(d) && d[0] && d[0].id !== undefined && Array.isArray(d) && d[0] && d[0].id !== null) pm.environment.set('role_uuid', Array.isArray(d) && d[0] && d[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "roles"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"system_code\": \"{{system_code}}\",\n  \"role_id\": \"reviewer\",\n  \"name\": \"Reviewer\",\n  \"permission_strings\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.id !== undefined && d.id !== null) pm.environment.set('role_uuid', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/roles/{{role_uuid}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "roles",
+                "{{role_uuid}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Update role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/roles/{{role_uuid}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "roles",
+                "{{role_uuid}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Reviewer (updated)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Bind role to user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/roles/{{role_uuid}}/bind",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "roles",
+                "{{role_uuid}}",
+                "bind"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"justification\": \"granted via postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.id !== undefined && d.id !== null) pm.environment.set('binding_id', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unbind role from user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/roles/{{role_uuid}}/unbind",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "roles",
+                "{{role_uuid}}",
+                "unbind"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DG approvals queue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/role-bindings?state=requested",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "role-bindings"
+              ],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "requested"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (Array.isArray(d) && d[0] && d[0].id !== undefined && Array.isArray(d) && d[0] && d[0].id !== null) pm.environment.set('binding_id', Array.isArray(d) && d[0] && d[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve binding (DG)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/role-bindings/{{binding_id}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "role-bindings",
+                "{{binding_id}}",
+                "approve"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Reject binding (DG)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/role-bindings/{{binding_id}}/reject",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "role-bindings",
+                "{{binding_id}}",
+                "reject"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Access Reviews",
+      "item": [
+        {
+          "name": "Create campaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/access-reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "access-reviews"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Quarterly review\",\n  \"period\": \"2026-Q2\",\n  \"scope\": {\n    \"system_code\": \"{{system_code}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.id !== undefined && d.id !== null) pm.environment.set('campaign_id', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/access-reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "access-reviews"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Get campaign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/access-reviews/{{campaign_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "access-reviews",
+                "{{campaign_id}}"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "List campaign items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/access-reviews/{{campaign_id}}/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "access-reviews",
+                "{{campaign_id}}",
+                "items"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (Array.isArray(d) && d[0] && d[0].id !== undefined && Array.isArray(d) && d[0] && d[0].id !== null) pm.environment.set('item_id', Array.isArray(d) && d[0] && d[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Decide item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/access-review-items/{{item_id}}/decide",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "access-review-items",
+                "{{item_id}}",
+                "decide"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"keep\",\n  \"note\": \"ok\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Complete campaign",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/access-reviews/{{campaign_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "access-reviews",
+                "{{campaign_id}}",
+                "complete"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Export signed report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/access-reviews/{{campaign_id}}/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "access-reviews",
+                "{{campaign_id}}",
+                "export"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Delegations",
+      "item": [
+        {
+          "name": "List delegations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/delegations?state=active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "delegations"
+              ],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "active"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (Array.isArray(d) && d[0] && d[0].id !== undefined && Array.isArray(d) && d[0] && d[0].id !== null) pm.environment.set('delegation_id', Array.isArray(d) && d[0] && d[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revoke delegation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/delegations/{{delegation_id}}/revoke",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "delegations",
+                "{{delegation_id}}",
+                "revoke"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Audit",
+      "item": [
+        {
+          "name": "Search audit log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/audit?page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "audit"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Verify audit chain",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/audit/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "audit",
+                "verify"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Export audit anchor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/audit/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "audit",
+                "export"
+              ]
+            },
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SCIM 2.0 (HRMS)",
+      "item": [
+        {
+          "name": "SCIM create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scim/v2/Users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"scim.user@clet.gov.gh\",\n  \"name\": {\n    \"givenName\": \"Scim\",\n    \"familyName\": \"User\"\n  },\n  \"emails\": [\n    {\n      \"value\": \"scim.user@clet.gov.gh\",\n      \"primary\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{scim_token}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status ok', () => pm.expect(pm.response.code).to.be.below(500));",
+                  "let d = {};",
+                  "try { d = pm.response.json().data || {}; } catch (e) {}",
+                  "if (d.id !== undefined && d.id !== null) pm.environment.set('scim_user_id', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SCIM get user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scim/v2/Users/{{scim_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users",
+                "{{scim_user_id}}"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{scim_token}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "SCIM update user (mover)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scim/v2/Users/{{scim_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users",
+                "{{scim_user_id}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"department\": \"Legal\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{scim_token}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "SCIM disable user (leaver)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/scim/v2/Users/{{scim_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "scim",
+                "v2",
+                "Users",
+                "{{scim_user_id}}"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{scim_token}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PAM & Internal Auth",
+      "item": [
+        {
+          "name": "List PAM sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pam/sessions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pam",
+                "sessions"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "End PAM session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pam/sessions/{{session_id}}/end",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "pam",
+                "sessions",
+                "{{session_id}}",
+                "end"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Auth status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "status"
+              ]
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Create auth session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/sessions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Revoke auth session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/sessions/revoke",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions",
+                "revoke"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Sync auth state",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/sync",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sync"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

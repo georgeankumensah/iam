@@ -1,71 +1,43 @@
 import logging
 
-import requests
-from django.conf import settings
+from core.zitadel import zitadel
 
 logger = logging.getLogger("iam.lifecycle.scim")
 
 
 class UserProvisionerBackend:
+    """Provisions/deprovisions users in ZITADEL for SCIM + HRMS flows.
+
+    Delegates to the shared core.zitadel client (correct JWT-bearer auth + Host
+    header). The previous implementation passed the raw service-account key as a
+    bearer token and never authenticated.
+    """
+
     def __init__(self) -> None:
-        self.base_url = settings.ZITADEL_HOST.rstrip("/")
-        self.service_jwt = settings.ZITADEL_SERVICE_ACCOUNT_JWT
-        self.session = requests.Session()
-        self.session.headers.update({
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.service_jwt}",
-        })
+        self.z = zitadel()
 
     def create_user(self, email: str, first_name: str, last_name: str, **extra) -> dict | None:
         try:
-            resp = self.session.post(
-                f"{self.base_url}/management/v1/users/human",
-                json={
-                    "email": {"email": email, "isVerified": False},
-                    "profile": {"firstName": first_name, "lastName": last_name},
-                    **extra,
-                },
-                timeout=15,
-            )
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException as e:
-            logger.error("Failed to create Zitadel user: %s", e)
+            existing = self.z.find_user_by_email(email)
+            if existing:
+                return {"userId": existing["userId"]}
+            return {"userId": self.z.create_human_user(email, first_name, last_name)}
+        except Exception as e:  # noqa: BLE001
+            logger.error("Failed to create ZITADEL user: %s", e)
             return None
-
-    def update_user(self, user_id: str, **updates) -> bool:
-        try:
-            resp = self.session.put(
-                f"{self.base_url}/management/v1/users/{user_id}",
-                json=updates,
-                timeout=15,
-            )
-            resp.raise_for_status()
-            return True
-        except requests.RequestException as e:
-            logger.error("Failed to update Zitadel user %s: %s", user_id, e)
-            return False
 
     def deactivate_user(self, user_id: str) -> bool:
         try:
-            resp = self.session.post(
-                f"{self.base_url}/management/v1/users/{user_id}/deactivate",
-                timeout=15,
-            )
-            resp.raise_for_status()
+            self.z.deactivate_user(user_id)
             return True
-        except requests.RequestException as e:
-            logger.error("Failed to deactivate Zitadel user %s: %s", user_id, e)
+        except Exception as e:  # noqa: BLE001
+            logger.error("Failed to deactivate ZITADEL user %s: %s", user_id, e)
             return False
 
     def terminate_sessions(self, user_id: str) -> bool:
         try:
-            resp = self.session.delete(
-                f"{self.base_url}/management/v1/users/{user_id}/sessions",
-                timeout=15,
-            )
-            resp.raise_for_status()
+            self.z.terminate_user_sessions(user_id)
             return True
-        except requests.RequestException as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Failed to terminate sessions for %s: %s", user_id, e)
             return False
