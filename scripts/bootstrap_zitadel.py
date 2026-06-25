@@ -555,7 +555,7 @@ if __name__ == "__main__":
     # Restart login container so it picks up the PAT file
     import subprocess
     subprocess.run(
-        ["docker", "compose", "restart", "login"],
+        ["docker", "compose", "restart", "login-app"],
         capture_output=True,
         timeout=30,
     )

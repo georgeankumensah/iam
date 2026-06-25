@@ -1,9 +1,7 @@
-import { useContext } from "react";
-import type { User } from "oidc-client-ts";
-import { AuthContext } from "./auth-context";
+import { useAuth as useOidcAuth } from "react-oidc-context";
 
 export interface UseAuthResult {
-  user: User | null;
+  user: import("oidc-client-ts").User | null;
   is_authenticated: boolean;
   is_loading: boolean;
   error: Error | null;
@@ -13,18 +11,26 @@ export interface UseAuthResult {
 }
 
 export function useAuth(): UseAuthResult {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within an <AuthProvider>");
-  }
+  const oidc = useOidcAuth();
 
   return {
-    user: ctx.state.user,
-    is_authenticated: ctx.state.is_authenticated,
-    is_loading: ctx.state.is_loading,
-    error: ctx.state.error,
-    login: ctx.login,
-    logout: ctx.logout,
-    get_access_token: ctx.get_access_token,
+    user: oidc.user ?? null,
+    is_authenticated: oidc.isAuthenticated,
+    is_loading: oidc.isLoading,
+    error: oidc.error ?? null,
+    login: async (extra_params) => {
+      await oidc.signinRedirect({ extraQueryParams: extra_params });
+    },
+    logout: async () => {
+      try {
+        await oidc.revokeTokens();
+      } catch {
+        // Best-effort token revocation
+      }
+      await oidc.signoutRedirect();
+    },
+    get_access_token: async () => {
+      return oidc.user?.access_token;
+    },
   };
 }

@@ -8,6 +8,6 @@ export default defineConfig({
   format: ["esm"],
   dts: true,
   clean: true,
-  external: ["oidc-client-ts", "react", "react/jsx-runtime"],
+  external: ["oidc-client-ts", "react-oidc-context", "react", "react/jsx-runtime"],
   outDir: "dist",
 });

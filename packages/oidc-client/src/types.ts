@@ -34,11 +34,4 @@ export interface AuthState {
   error: Error | null;
 }
 
-export type AuthEventCallback = (event: AuthEvent) => void;
-
-export interface AuthEvent {
-  type: "user_loaded" | "user_unloaded" | "user_signed_out" | "token_refreshed" | "session_expired" | "cross_tab_logout" | "cross_tab_auth";
-  user: User | null;
-}
-
 export type { User, UserManagerSettings };

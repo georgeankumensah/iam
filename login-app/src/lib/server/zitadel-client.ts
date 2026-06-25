@@ -33,7 +33,7 @@ function getJwtAssertion(keyData: Record<string, string>): string {
     exp: now + 3600,
   };
   const message = b64(JSON.stringify(header)) + "." + b64(JSON.stringify(payload));
-  const sig = crypto.sign("sha256", Buffer.from(message), keyData.key);
+  const sig = crypto.sign("RSA-SHA256", Buffer.from(message), keyData.key);
   return message + "." + b64(sig);
 }
 
