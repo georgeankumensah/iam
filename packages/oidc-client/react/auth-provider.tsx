@@ -49,15 +49,15 @@ export function AuthProvider({ config, children, on_error }: AuthProviderProps) 
 
     async function init() {
       try {
-        const has_auth_params =
-          window.location.search.includes("code=") ||
-          window.location.search.includes("state=");
+        const search_params = new URLSearchParams(window.location.search);
+        const has_auth_params = search_params.has("code") && search_params.has("state");
 
         if (has_auth_params) {
-          const u = await manager.signinCallback();
-          setUser(u);
+          const callback_url = window.location.href;
           const clean_url = window.location.origin + window.location.pathname;
           window.history.replaceState({}, "", clean_url);
+          const u = await manager.signinCallback(callback_url);
+          setUser(u);
         } else {
           const u = await manager.getUser();
           setUser(u);

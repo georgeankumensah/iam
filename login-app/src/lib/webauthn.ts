@@ -21,7 +21,11 @@ export function bufToB64url(buf: ArrayBuffer): string {
 type AnyOptions = { publicKey?: Record<string, unknown> } & Record<string, unknown>;
 
 function unwrap(options: AnyOptions): Record<string, unknown> {
-  return (options.publicKey as Record<string, unknown>) || options;
+  let current = options as Record<string, unknown>;
+  while (current.publicKey && typeof current.publicKey === "object") {
+    current = current.publicKey as Record<string, unknown>;
+  }
+  return current;
 }
 
 // Decode a Zitadel assertion (login) options object into the structure

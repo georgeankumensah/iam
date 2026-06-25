@@ -84,8 +84,9 @@ function LoginContent() {
       const { next, factors, redirectUrl } = await resp.json();
 
       if (next === "mfa" && factors?.length) {
-        // Route to the preferred second-factor challenge.
-        window.location.href = factors[0].path;
+        const params = new URLSearchParams({ authRequest });
+        params.set("factors", factors.map((factor: { factor: string }) => factor.factor).join(","));
+        window.location.href = `/mfa?${params}`;
         return;
       }
       if (next === "enroll") {
