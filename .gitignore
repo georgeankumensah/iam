@@ -19,4 +19,3 @@ kubeconfig*
 celerybeat-schedule
 zitadel/machinekey/zitadel-admin-sa.json
 zitadel/machinekey/login-client.pat
-
