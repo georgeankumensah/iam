@@ -32,10 +32,14 @@ def test_my_apps_returns_granted_systems(admin_client, admin_user):
     RoleBinding.objects.create(role=role, user=admin_user, state="approved")
     resp = admin_client.get("/v1/me/apps")
     assert resp.status_code == 200
-    apps = resp.json()["data"]
+    body = resp.json()
+    assert body["message"] == "Available systems retrieved."
+    apps = body["data"]
     ams = next(a for a in apps if a["system_code"] == "ams")
     assert ams["frontend_url"] == "http://localhost:5173"
-    assert "user" in ams["roles"]
+    assert ams["role"] == "user"
+    assert ams["permissions"] == []
+    assert ams["system_name"] == "AMS"
 
 
 def test_my_sessions_empty_when_no_zitadel_user(admin_client):

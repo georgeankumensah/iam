@@ -18,6 +18,7 @@ def backchannel_logout(request):
         logger.warning("Backchannel logout missing logout_token")
         return JsonResponse({"error": "missing_token"}, status=400)
 
+    _SENTINEL_UID = "00000000-0000-0000-0000-000000000000"
     try:
         payload = verify_jwt_token(logout_token)
         sub = payload.get("sub", "")
@@ -27,12 +28,11 @@ def backchannel_logout(request):
         if "http://schemas.openid.net/event/backchannel-logout" not in events:
             return JsonResponse({"error": "invalid_event"}, status=400)
 
-        from accounts.models import User
-        from audit.emit import emit_event
-        from audit.models import ActiveSession
-
-        _SENTINEL_UID = "00000000-0000-0000-0000-000000000000"
         try:
+            from accounts.models import User
+            from audit.emit import emit_event
+            from audit.models import ActiveSession
+
             user = User.objects.get(zitadel_user_id=sub)
             revoked = ActiveSession.objects.filter(user=user).update(revoked=True)
             logger.info("Backchannel logout processed for user %s (sid=%s)", sub, sid)

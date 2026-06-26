@@ -88,17 +88,20 @@ def me_view(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_apps(request):
-    """App switcher: the systems this user can open, with their roles and the
-    frontend URL to launch each."""
+    """App switcher: systems this user can open, with role and permissions."""
     from clients.models import OIDCClient
 
-    by_system: dict[str, list] = {}
-    for b in _active_bindings(request.user):
-        by_system.setdefault(b.role.system_code, []).append(b.role.role_id)
+    client_cache: dict[str, OIDCClient | None] = {}
+
+    def _client(code: str):
+        if code not in client_cache:
+            client_cache[code] = OIDCClient.objects.filter(system_code=code).first()
+        return client_cache[code]
 
     apps = []
-    for code, role_ids in by_system.items():
-        client = OIDCClient.objects.filter(system_code=code).first()
+    for b in _active_bindings(request.user):
+        code = b.role.system_code
+        client = _client(code)
         if not client:
             continue
         frontend_url = ""
@@ -109,12 +112,13 @@ def my_apps(request):
                 break
         apps.append({
             "system_code": code,
-            "name": client.name or code,
+            "system_name": client.name or code,
             "frontend_url": frontend_url,
-            "roles": sorted(set(role_ids)),
+            "role": b.role.role_id,
+            "permissions": b.role.permission_strings,
         })
-    apps.sort(key=lambda a: a["system_code"])
-    return success_response(data=apps)
+    apps.sort(key=lambda a: (a["system_code"], a["role"]))
+    return success_response(data=apps, message="Available systems retrieved.")
 
 
 @api_view(["GET"])

@@ -24,15 +24,19 @@ def test_backchannel_logout_invalid_token():
     assert resp.status_code == 500
 
 
-def test_backchannel_logout_unknown_user():
-    from unittest.mock import patch
-    c = Client()
-    payload = {
+def _make_backchannel_payload(**overrides):
+    return {
         "sub": "00000000-0000-0000-0000-000000000001",
         "sid": "session-1",
         "events": {"http://schemas.openid.net/event/backchannel-logout": {}},
+        **overrides,
     }
-    with patch("jose.jwt.get_unverified_claims", return_value=payload):
+
+
+def test_backchannel_logout_unknown_user():
+    from unittest.mock import patch
+    c = Client()
+    with patch("oidc_rp.backchannel.verify_jwt_token", return_value=_make_backchannel_payload()):
         resp = c.post("/backchannel-logout", {"logout_token": "fake"})
     assert resp.status_code == 200
 
@@ -42,12 +46,8 @@ def test_backchannel_logout_revokes_sessions():
     user = User.objects.create_user(email="test@clet.gov.gh", user_type="staff", status="active")
     ActiveSession.objects.create(user=user, jti="session-1", issued_at=NOW)
     c = Client()
-    payload = {
-        "sub": user.zitadel_user_id or str(user.id),
-        "sid": "session-1",
-        "events": {"http://schemas.openid.net/event/backchannel-logout": {}},
-    }
-    with patch("jose.jwt.get_unverified_claims", return_value=payload):
+    with patch("oidc_rp.backchannel.verify_jwt_token",
+               return_value=_make_backchannel_payload(sub=user.zitadel_user_id or str(user.id))):
         resp = c.post("/backchannel-logout", {"logout_token": "fake"})
     assert resp.status_code == 200
     assert ActiveSession.objects.filter(revoked=True).count() == 1

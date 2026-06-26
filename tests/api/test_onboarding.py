@@ -31,13 +31,17 @@ def test_invite_creates_user_grant_and_invitation(admin_client, ams_system, mock
     resp = admin_client.post(
         "/v1/invitations",
         {"email": "invitee@clet.gov.gh", "system_code": "ams",
-         "role_ids": [str(user_role.id)], "return_code": True},
+         "role_id": str(user_role.id), "return_code": True,
+         "first_name": "Jane", "last_name": "Doe"},
         format="json",
     )
     assert resp.status_code == 201, resp.content
+    assert resp.json()["message"] == "Invite sent."
     data = resp.json()["data"]
     assert data["email"] == "invitee@clet.gov.gh"
-    assert data["invite_code"] == "RESETCODE"
+    assert data["role_id"] == str(user_role.id)
+    assert data["system_code"] == "ams"
+    assert data["assignment_id"] is not None
     # User mirrored + pending invitation + approved binding + grant pushed
     user = User.objects.get(email="invitee@clet.gov.gh")
     assert user.zitadel_user_id == "100000000000000001"
@@ -50,27 +54,30 @@ def test_invite_requires_role(admin_client, ams_system):
     _ = ams_system
     resp = admin_client.post(
         "/v1/invitations",
-        {"email": "x@clet.gov.gh", "system_code": "ams", "role_ids": []},
+        {"email": "x@clet.gov.gh", "system_code": "ams"},
         format="json",
     )
     assert resp.status_code == 400
-    assert resp.json()["error"] == "role_required"
+    assert resp.json()["error"] == "email, system_code and role_id are required"
 
 
 def test_invite_unknown_system(admin_client):
     resp = admin_client.post(
         "/v1/invitations",
-        {"email": "x@clet.gov.gh", "system_code": "nope", "role_ids": ["x"]},
+        {"email": "x@clet.gov.gh", "system_code": "nope",
+         "role_id": "00000000-0000-0000-0000-000000000000"},
         format="json",
     )
-    assert resp.status_code in (400, 403)
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "unknown_system"
 
 
 def test_non_admin_cannot_invite(auth_client, ams_system):
     _, user_role, _ = ams_system
     resp = auth_client.post(
         "/v1/invitations",
-        {"email": "x@clet.gov.gh", "system_code": "ams", "role_ids": [str(user_role.id)]},
+        {"email": "x@clet.gov.gh", "system_code": "ams",
+         "role_id": str(user_role.id)},
         format="json",
     )
     assert resp.status_code == 403

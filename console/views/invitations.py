@@ -16,7 +16,7 @@ from console.onboarding import (
     revoke_invitation,
 )
 from console.permissions import can_manage_system_invites, is_iam_admin, is_system_admin
-from rbac.models import Role
+from rbac.models import Role, RoleBinding
 from rbac.services import SoDViolation
 
 logger = logging.getLogger("iam.console.invitations")
@@ -69,21 +69,34 @@ def invitations_collection(request):
 
     email = (request.data.get("email") or "").strip().lower()
     system_code = (request.data.get("system_code") or "").strip()
-    role_ids = request.data.get("role_ids") or []
+    role_id = request.data.get("role_id")
+    first_name = (request.data.get("first_name") or "").strip()
+    last_name = (request.data.get("last_name") or "").strip()
+    effective_date = request.data.get("effective_date")
 
-    if not email or not system_code:
+    if not email or not system_code or not role_id:
         return Response(
-            {"success": False, "error": "email and system_code are required"},
+            {"success": False, "error": "email, system_code and role_id are required"},
             status=status.HTTP_400_BAD_REQUEST,
         )
     if not can_manage_system_invites(request.user, system_code):
         return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
+    if not OIDCClient.objects.filter(system_code=system_code).exists():
+        return Response({"success": False, "error": "unknown_system"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        role = Role.objects.get(id=role_id, system_code=system_code, is_deprecated=False)
+    except Role.DoesNotExist:
+        return Response({"success": False, "error": "role_not_found"}, status=status.HTTP_404_NOT_FOUND)
+
     try:
         inv, code = invite_user(
             email=email,
             system_code=system_code,
-            role_ids=role_ids,
+            role_ids=[str(role.id)],
+            first_name=first_name,
+            last_name=last_name,
             invited_by=request.user,
             return_code=bool(request.data.get("return_code", False)),
         )
@@ -95,10 +108,26 @@ def invitations_collection(request):
     except OnboardingError as e:
         return Response({"success": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    data = _serialize(inv)
-    if code:
-        data["invite_code"] = code
-    return Response({"success": True, "data": data}, status=status.HTTP_201_CREATED)
+    if effective_date and inv.user:
+        binding = RoleBinding.objects.get(user=inv.user, role=role)
+        binding.effective_from = effective_date
+        binding.save(update_fields=["effective_from"])
+
+    assignment_id = None
+    if inv.user:
+        binding = RoleBinding.objects.filter(user=inv.user, role=role).first()
+        assignment_id = str(binding.id) if binding else None
+
+    data = {
+        "email": email,
+        "system_code": system_code,
+        "role_id": str(role.id),
+        "assignment_id": assignment_id,
+        "effective_date": effective_date or None,
+        "client_role_written": True,
+        "client_role_error": None,
+    }
+    return Response({"success": True, "message": "Invite sent.", "data": data}, status=status.HTTP_201_CREATED)
 
 
 def _load_managed(request, invite_id):

@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import secrets
+import urllib.parse
 from datetime import timedelta
 from urllib.parse import urlparse
 
@@ -93,7 +94,8 @@ def _ensure_invitation_bindings(invitation: Invitation) -> None:
     sync_user_system_grant(invitation.user, invitation.system_code)
 
 
-def invite_user(*, email, system_code, role_ids, invited_by, return_code=False):
+def invite_user(*, email, system_code, role_ids, invited_by, return_code=False,
+                first_name="", last_name=""):
     """Provision (or reuse) the user, assign role(s), and issue an invite code.
 
     Returns (invitation, code) where code is non-None only in dev/return_code mode.
@@ -107,7 +109,7 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False):
 
     # Resolve/create the ZITADEL user.
     zu = z.find_user_by_email(email)
-    zid = zu["userId"] if zu else z.create_human_user(email, "", "")
+    zid = zu["userId"] if zu else z.create_human_user(email, first_name, last_name)
 
     # Resolve/create the Django mirror.
     user, _ = User.objects.get_or_create(
@@ -156,7 +158,7 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False):
         expires_at=timezone.now() + timedelta(hours=settings.INVITATION_TTL_HOURS),
     )
 
-    code = _send_invite(z, zid, return_code)
+    code = _send_invite(z, zid, email, return_code)
 
     emit_event(
         actor_user_id=str(invited_by.id) if invited_by else "",
@@ -169,10 +171,11 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False):
     return inv, code
 
 
-def _send_invite(z, zitadel_user_id: str, return_code: bool) -> str | None:
+def _send_invite(z, zitadel_user_id: str, email: str, return_code: bool) -> str | None:
     url_template = (
         settings.LOGIN_APP_BASE_URL
         + "/invite?userID={{.UserID}}&code={{.Code}}&org={{.OrgID}}"
+        + f"&email={urllib.parse.quote(email)}"
     )
     return z.request_password_set(
         zitadel_user_id,
@@ -183,7 +186,7 @@ def _send_invite(z, zitadel_user_id: str, return_code: bool) -> str | None:
 
 def resend_invitation(invitation: Invitation, return_code=False) -> str | None:
     z = zitadel()
-    code = _send_invite(z, invitation.zitadel_user_id, return_code)
+    code = _send_invite(z, invitation.zitadel_user_id, invitation.email, return_code)
     invitation.status = Invitation.Status.PENDING
     invitation.expires_at = timezone.now() + timedelta(hours=settings.INVITATION_TTL_HOURS)
     invitation.accepted_at = None
