@@ -34,6 +34,14 @@ class UserProvisionerBackend:
             logger.error("Failed to deactivate ZITADEL user %s: %s", user_id, e)
             return False
 
+    def reactivate_user(self, user_id: str) -> bool:
+        try:
+            self.z.reactivate_user(user_id)
+            return True
+        except Exception as e:  # noqa: BLE001
+            logger.error("Failed to reactivate ZITADEL user %s: %s", user_id, e)
+            return False
+
     def terminate_sessions(self, user_id: str) -> bool:
         try:
             self.z.terminate_user_sessions(user_id)

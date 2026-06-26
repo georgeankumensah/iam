@@ -21,6 +21,13 @@ def deactivate_user_in_zitadel(zitadel_user_id: str) -> bool:
     return backend.deactivate_user(zitadel_user_id)
 
 
+def reactivate_user_in_zitadel(zitadel_user_id: str) -> bool:
+    from lifecycle.scim import UserProvisionerBackend
+
+    backend = UserProvisionerBackend()
+    return backend.reactivate_user(zitadel_user_id)
+
+
 def parse_bulk_csv(csv_content: str) -> list[dict[str, Any]]:
     reader = csv.DictReader(io.StringIO(csv_content))
     users = []

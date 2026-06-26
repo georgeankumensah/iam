@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 // endpoint (authenticated by a shared secret), which sets the credential in
 // ZITADEL, activates the user, and returns the target system's URL.
 export async function POST(request: NextRequest) {
-  const { userId, code, password } = await request.json();
-  if (!userId || !code || !password) {
+  const { token, code, password, firstName, lastName } = await request.json();
+  if (!token || !code || !password || !firstName || !lastName) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 });
   }
 
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   const resp = await fetch(`${apiUrl}/v1/onboarding/accept`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Internal-Secret": secret },
-    body: JSON.stringify({ zitadel_user_id: userId, code, password }),
+    body: JSON.stringify({ lookup_token: token, code, password, first_name: firstName, last_name: lastName }),
   }).catch(() => null);
 
   if (!resp || !resp.ok) {

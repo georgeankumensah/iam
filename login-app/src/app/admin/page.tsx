@@ -27,6 +27,7 @@ type Invitation = {
   zitadel_user_id: string;
   status: string;
   invite_code?: string;
+  lookup_token?: string;
   created_at: string;
 };
 
@@ -35,6 +36,8 @@ export default function AdminPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [selectedSystem, setSelectedSystem] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function AdminPage() {
   );
 
   const inviteLink = created?.invite_code
-    ? `${origin}/invite?userID=${encodeURIComponent(created.zitadel_user_id)}&code=${encodeURIComponent(created.invite_code)}`
+    ? `${origin}/invite?t=${encodeURIComponent(created.lookup_token || "")}&code=${encodeURIComponent(created.invite_code)}`
     : "";
 
   useEffect(() => {
@@ -92,6 +95,14 @@ export default function AdminPage() {
     setCreated(null);
     setCopied(false);
 
+    if (!firstName.trim()) {
+      setError("Enter a first name");
+      return;
+    }
+    if (!lastName.trim()) {
+      setError("Enter a last name");
+      return;
+    }
     if (!email.trim()) {
       setError("Enter an email address");
       return;
@@ -107,6 +118,8 @@ export default function AdminPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
           email,
           system_code: selectedSystem,
           role_ids: selectedRoles,
@@ -117,6 +130,8 @@ export default function AdminPage() {
         throw new Error(data.message || data.error || "Could not create invitation");
       }
       setCreated(data.data);
+      setFirstName("");
+      setLastName("");
       setEmail("");
       setSelectedRoles([]);
       await load();
@@ -171,6 +186,13 @@ export default function AdminPage() {
             </div>
           </div>
           <a
+            href="/admin/users"
+            className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white hover:bg-white/10"
+          >
+            <ShieldCheck size={16} />
+            Users
+          </a>
+          <a
             href="/logout"
             className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white hover:bg-white/10"
           >
@@ -207,6 +229,23 @@ export default function AdminPage() {
             </div>
           ) : (
             <form onSubmit={createInvitation} className="grid gap-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Input
+                  label="First name"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  placeholder="Jane"
+                  autoComplete="given-name"
+                />
+                <Input
+                  label="Last name"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  placeholder="Doe"
+                  autoComplete="family-name"
+                />
+              </div>
+
               <Input
                 label="Invitee email"
                 type="email"

@@ -98,7 +98,8 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False,
                 first_name="", last_name=""):
     """Provision (or reuse) the user, assign role(s), and issue an invite code.
 
-    Returns (invitation, code) where code is non-None only in dev/return_code mode.
+    Returns (invitation, code, lookup_token) where code is non-None only in
+    dev/return_code mode, and lookup_token is the opaque token for the invite URL.
     """
     client = _system_client(system_code)
     if not client:
@@ -112,12 +113,16 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False,
     zid = zu["userId"] if zu else z.create_human_user(email, first_name, last_name)
 
     # Resolve/create the Django mirror.
-    user, _ = User.objects.get_or_create(
+    user, created = User.objects.get_or_create(
         email=email, defaults={"status": UserStatus.PRE_ACTIVE}
     )
+    if not created and user.status == UserStatus.DISABLED:
+        raise OnboardingError("This user has been deactivated. Reactivate them before sending a new invitation.")
     if not user.zitadel_user_id:
         user.zitadel_user_id = zid
-        user.save(update_fields=["zitadel_user_id"])
+    user.first_name = first_name
+    user.last_name = last_name
+    user.save(update_fields=["zitadel_user_id", "first_name", "last_name"])
 
     inviter_is_global = is_iam_admin(invited_by) if invited_by else True
 
@@ -146,6 +151,7 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False,
     sync_user_system_grant(user, system_code)
 
     raw = secrets.token_urlsafe(32)
+    lookup_token = secrets.token_urlsafe(16)
     inv = Invitation.objects.create(
         email=email,
         system_code=system_code,
@@ -154,11 +160,12 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False,
         role_ids=[str(r.id) for r in roles],
         as_admin=any(r.is_admin for r in roles),
         token_hash=hashlib.sha256(raw.encode()).hexdigest(),
+        lookup_token_hash=hashlib.sha256(lookup_token.encode()).hexdigest(),
         invited_by=invited_by,
         expires_at=timezone.now() + timedelta(hours=settings.INVITATION_TTL_HOURS),
     )
 
-    code = _send_invite(z, zid, email, return_code)
+    code = _send_invite(z, zid, email, return_code, lookup_token)
 
     emit_event(
         actor_user_id=str(invited_by.id) if invited_by else "",
@@ -168,14 +175,13 @@ def invite_user(*, email, system_code, role_ids, invited_by, return_code=False,
         channel="console",
         metadata={"system": system_code, "email": email, "as_admin": inv.as_admin},
     )
-    return inv, code
+    return inv, code, lookup_token
 
 
-def _send_invite(z, zitadel_user_id: str, email: str, return_code: bool) -> str | None:
+def _send_invite(z, zitadel_user_id: str, email: str, return_code: bool, lookup_token: str = "") -> str | None:
     url_template = (
         settings.LOGIN_APP_BASE_URL
-        + "/invite?userID={{.UserID}}&code={{.Code}}&org={{.OrgID}}"
-        + f"&email={urllib.parse.quote(email)}"
+        + f"/invite?code={{.Code}}&t={urllib.parse.quote(lookup_token)}"
     )
     return z.request_password_set(
         zitadel_user_id,
@@ -184,17 +190,19 @@ def _send_invite(z, zitadel_user_id: str, email: str, return_code: bool) -> str 
     )
 
 
-def resend_invitation(invitation: Invitation, return_code=False) -> str | None:
+def resend_invitation(invitation: Invitation, return_code=False) -> tuple[str | None, str]:
     z = zitadel()
-    code = _send_invite(z, invitation.zitadel_user_id, invitation.email, return_code)
+    lookup_token = secrets.token_urlsafe(16)
+    code = _send_invite(z, invitation.zitadel_user_id, invitation.email, return_code, lookup_token)
+    invitation.lookup_token_hash = hashlib.sha256(lookup_token.encode()).hexdigest()
     invitation.status = Invitation.Status.PENDING
     invitation.expires_at = timezone.now() + timedelta(hours=settings.INVITATION_TTL_HOURS)
     invitation.accepted_at = None
     if invitation.user and invitation.user.status != UserStatus.ACTIVE:
         invitation.user.status = UserStatus.PRE_ACTIVE
         invitation.user.save(update_fields=["status"])
-    invitation.save(update_fields=["status", "expires_at", "accepted_at", "updated_at"])
-    return code
+    invitation.save(update_fields=["lookup_token_hash", "status", "expires_at", "accepted_at", "updated_at"])
+    return code, lookup_token
 
 
 def revoke_invitation(invitation: Invitation, actor=None) -> None:
@@ -209,22 +217,25 @@ def revoke_invitation(invitation: Invitation, actor=None) -> None:
     )
 
 
-def accept_invitation(*, zitadel_user_id: str, code: str, password: str) -> dict:
+def accept_invitation(*, lookup_token: str, code: str, password: str, first_name: str = "", last_name: str = "") -> dict:
     """Called when an invitee sets their password from the invite link.
 
     Sets the credential in ZITADEL, then activates the Django user and marks the
     invitation accepted. Returns the target system's frontend URL for redirect.
     """
-    z = zitadel()
-    z.set_password_with_code(zitadel_user_id, code, password)
-
+    token_hash = hashlib.sha256(lookup_token.encode()).hexdigest()
     inv = (
         Invitation.objects.filter(
-            zitadel_user_id=zitadel_user_id, status=Invitation.Status.PENDING
+            lookup_token_hash=token_hash, status=Invitation.Status.PENDING
         )
-        .order_by("-created_at")
+        .select_related("user")
         .first()
     )
+    if not inv:
+        raise OnboardingError("invalid_or_expired")
+
+    z = zitadel()
+    z.set_password_with_code(inv.zitadel_user_id, code, password)
     system_url = settings.LOGIN_APP_BASE_URL
     if inv:
         inv.status = Invitation.Status.ACCEPTED
@@ -233,7 +244,9 @@ def accept_invitation(*, zitadel_user_id: str, code: str, password: str) -> dict
         if inv.user:
             _ensure_invitation_bindings(inv)
             inv.user.status = UserStatus.ACTIVE
-            inv.user.save(update_fields=["status"])
+            inv.user.first_name = first_name
+            inv.user.last_name = last_name
+            inv.user.save(update_fields=["status", "first_name", "last_name"])
         client = _system_client(inv.system_code)
         if client:
             system_url = system_frontend_url(client)

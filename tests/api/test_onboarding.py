@@ -1,3 +1,5 @@
+import hashlib
+
 import pytest
 from django.utils import timezone
 
@@ -6,6 +8,9 @@ from clients.models import OIDCClient
 from rbac.models import Role, RoleBinding
 
 pytestmark = pytest.mark.django_db
+
+_TEST_LOOKUP_TOKEN = "test-lookup-token-test"
+_TEST_LOOKUP_HASH = hashlib.sha256(_TEST_LOOKUP_TOKEN.encode()).hexdigest()
 
 
 @pytest.fixture
@@ -185,19 +190,65 @@ def test_accept_invitation_activates_user(ams_system, mock_zitadel, settings):
     user = User.objects.create(email="acc@clet.gov.gh", status="pre_active",
                                zitadel_user_id="100000000000000009")
     Invitation.objects.create(email="acc@clet.gov.gh", system_code="ams", user=user,
-                              zitadel_user_id="100000000000000009", status="pending")
+                              zitadel_user_id="100000000000000009", status="pending",
+                              lookup_token_hash=_TEST_LOOKUP_HASH)
     from rest_framework.test import APIClient
     client = APIClient()
     resp = client.post(
         "/v1/onboarding/accept",
-        {"zitadel_user_id": "100000000000000009", "code": "RESETCODE", "password": "Test1234!"},
+        {"lookup_token": _TEST_LOOKUP_TOKEN, "code": "RESETCODE", "password": "Test1234!",
+         "first_name": "Jane", "last_name": "Doe"},
         format="json",
         HTTP_X_INTERNAL_SECRET=settings.ONBOARDING_INTERNAL_SECRET,
     )
     assert resp.status_code == 200, resp.content
     user.refresh_from_db()
     assert user.status == "active"
-    mock_zitadel.set_password_with_code.assert_called_once()
+    assert user.first_name == "Jane"
+    assert user.last_name == "Doe"
+    mock_zitadel.set_password_with_code.assert_called_once_with(
+        "100000000000000009", "RESETCODE", "Test1234!"
+    )
+
+
+def test_accept_invitation_requires_first_name(ams_system, mock_zitadel, settings):
+    _ = ams_system
+    user = User.objects.create(email="acc@clet.gov.gh", status="pre_active",
+                               zitadel_user_id="100000000000000009")
+    Invitation.objects.create(email="acc@clet.gov.gh", system_code="ams", user=user,
+                              zitadel_user_id="100000000000000009", status="pending",
+                              lookup_token_hash=_TEST_LOOKUP_HASH)
+    from rest_framework.test import APIClient
+    client = APIClient()
+    resp = client.post(
+        "/v1/onboarding/accept",
+        {"lookup_token": _TEST_LOOKUP_TOKEN, "code": "RESETCODE", "password": "Test1234!",
+         "first_name": "", "last_name": "Doe"},
+        format="json",
+        HTTP_X_INTERNAL_SECRET=settings.ONBOARDING_INTERNAL_SECRET,
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "first_name and last_name are required"
+
+
+def test_accept_invitation_requires_last_name(ams_system, mock_zitadel, settings):
+    _ = ams_system
+    user = User.objects.create(email="acc@clet.gov.gh", status="pre_active",
+                               zitadel_user_id="100000000000000009")
+    Invitation.objects.create(email="acc@clet.gov.gh", system_code="ams", user=user,
+                              zitadel_user_id="100000000000000009", status="pending",
+                              lookup_token_hash=_TEST_LOOKUP_HASH)
+    from rest_framework.test import APIClient
+    client = APIClient()
+    resp = client.post(
+        "/v1/onboarding/accept",
+        {"lookup_token": _TEST_LOOKUP_TOKEN, "code": "RESETCODE", "password": "Test1234!",
+         "first_name": "Jane", "last_name": ""},
+        format="json",
+        HTTP_X_INTERNAL_SECRET=settings.ONBOARDING_INTERNAL_SECRET,
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "first_name and last_name are required"
 
 
 def test_accept_invitation_repairs_missing_role_binding(ams_system, mock_zitadel, settings):
@@ -207,6 +258,8 @@ def test_accept_invitation_repairs_missing_role_binding(ams_system, mock_zitadel
         status="pre_active",
         zitadel_user_id="100000000000000010",
     )
+    _repair_token = "repair-lookup-token"
+    _repair_hash = hashlib.sha256(_repair_token.encode()).hexdigest()
     Invitation.objects.create(
         email="repair@clet.gov.gh",
         system_code="ams",
@@ -214,6 +267,7 @@ def test_accept_invitation_repairs_missing_role_binding(ams_system, mock_zitadel
         zitadel_user_id="100000000000000010",
         role_ids=[str(user_role.id)],
         status="pending",
+        lookup_token_hash=_repair_hash,
     )
 
     from rest_framework.test import APIClient
@@ -221,7 +275,8 @@ def test_accept_invitation_repairs_missing_role_binding(ams_system, mock_zitadel
     client = APIClient()
     resp = client.post(
         "/v1/onboarding/accept",
-        {"zitadel_user_id": "100000000000000010", "code": "RESETCODE", "password": "Test1234!"},
+        {"lookup_token": _repair_token, "code": "RESETCODE", "password": "Test1234!",
+         "first_name": "Jane", "last_name": "Doe"},
         format="json",
         HTTP_X_INTERNAL_SECRET=settings.ONBOARDING_INTERNAL_SECRET,
     )
@@ -240,7 +295,7 @@ def test_accept_rejects_bad_secret():
     client = APIClient()
     resp = client.post(
         "/v1/onboarding/accept",
-        {"zitadel_user_id": "1", "code": "x", "password": "y"},
+        {"zitadel_user_id": "1", "code": "x", "password": "y", "first_name": "Jane", "last_name": "Doe"},
         format="json",
         HTTP_X_INTERNAL_SECRET="wrong",
     )

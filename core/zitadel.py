@@ -360,6 +360,13 @@ class ZitadelService:
             if e.status not in (404, 400):
                 raise
 
+    def reactivate_user(self, user_id: str) -> None:
+        try:
+            self.request("POST", f"/v2/users/{user_id}/reactivate", {})
+        except ZitadelError as e:
+            if e.status not in (404, 400):
+                raise
+
     # -- Actions V2 ---------------------------------------------------------
 
     def create_actions_target(self, name: str, endpoint: str,

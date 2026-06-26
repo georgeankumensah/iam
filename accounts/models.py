@@ -26,6 +26,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     zitadel_user_id = models.CharField(max_length=255, unique=True, null=True, blank=True, db_index=True)
     email = models.EmailField(unique=True, db_index=True)
+    first_name = models.CharField(max_length=150, blank=True, default="")
+    last_name = models.CharField(max_length=150, blank=True, default="")
     phone = models.CharField(max_length=30, blank=True, default="")
     user_type = models.CharField(max_length=20, choices=UserType.choices, default=UserType.EXTERNAL, db_index=True)
     status = models.CharField(max_length=20, choices=UserStatus.choices, default=UserStatus.PRE_ACTIVE, db_index=True)
@@ -82,6 +84,7 @@ class Invitation(models.Model):
     role_ids = models.JSONField(default=list, blank=True)
     as_admin = models.BooleanField(default=False)
     token_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    lookup_token_hash = models.CharField(max_length=64, blank=True, default="", db_index=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
     invited_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sent_invitations"

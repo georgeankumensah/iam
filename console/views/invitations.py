@@ -91,7 +91,7 @@ def invitations_collection(request):
         return Response({"success": False, "error": "role_not_found"}, status=status.HTTP_404_NOT_FOUND)
 
     try:
-        inv, code = invite_user(
+        inv, code, _lookup_token = invite_user(
             email=email,
             system_code=system_code,
             role_ids=[str(role.id)],
@@ -158,10 +158,11 @@ def invitation_resend(request, invite_id: str):
     inv, err = _load_managed(request, invite_id)
     if err:
         return err
-    code = resend_invitation(inv, return_code=bool(request.data.get("return_code", False)))
+    code, lookup_token = resend_invitation(inv, return_code=bool(request.data.get("return_code", False)))
     data = _serialize(inv)
     if code:
         data["invite_code"] = code
+    data["lookup_token"] = lookup_token
     return Response({"success": True, "data": data})
 
 
@@ -247,6 +248,8 @@ def internal_invitations(request):
     email = (request.data.get("email") or "").strip().lower()
     system_code = (request.data.get("system_code") or "").strip()
     role_ids = request.data.get("role_ids") or []
+    first_name = request.data.get("first_name", "")
+    last_name = request.data.get("last_name", "")
 
     if not email or not system_code:
         return Response(
@@ -257,12 +260,14 @@ def internal_invitations(request):
         return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
     try:
-        inv, code = invite_user(
+        inv, code, lookup_token = invite_user(
             email=email,
             system_code=system_code,
             role_ids=role_ids,
             invited_by=actor,
             return_code=bool(request.data.get("return_code", True)),
+            first_name=first_name,
+            last_name=last_name,
         )
     except SoDViolation as e:
         return Response(
@@ -275,6 +280,7 @@ def internal_invitations(request):
     data = _serialize(inv)
     if code:
         data["invite_code"] = code
+    data["lookup_token"] = lookup_token
     return Response({"success": True, "data": data}, status=status.HTTP_201_CREATED)
 
 
@@ -294,11 +300,12 @@ def internal_invitation_resend(request, invite_id: str):
     if not can_manage_system_invites(actor, inv.system_code):
         return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
-    code = resend_invitation(inv, return_code=True)
+    code, lookup_token = resend_invitation(inv, return_code=True)
     inv.refresh_from_db()
     data = _serialize(inv)
     if code:
         data["invite_code"] = code
+    data["lookup_token"] = lookup_token
     return Response({"success": True, "data": data})
 
 
@@ -309,14 +316,18 @@ def invitation_accept(request):
     if request.headers.get("X-Internal-Secret") != settings.ONBOARDING_INTERNAL_SECRET:
         return Response({"success": False, "error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
 
-    uid = request.data.get("zitadel_user_id")
+    lookup_token = request.data.get("lookup_token")
     code = request.data.get("code")
     password = request.data.get("password")
-    if not (uid and code and password):
+    first_name = request.data.get("first_name", "")
+    last_name = request.data.get("last_name", "")
+    if not (lookup_token and code and password):
         return Response({"success": False, "error": "missing fields"}, status=status.HTTP_400_BAD_REQUEST)
+    if not (first_name and last_name):
+        return Response({"success": False, "error": "first_name and last_name are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        result = accept_invitation(zitadel_user_id=uid, code=code, password=password)
+        result = accept_invitation(lookup_token=lookup_token, code=code, password=password, first_name=first_name, last_name=last_name)
     except Exception as e:  # noqa: BLE001
         logger.warning("invitation accept failed: %s", e)
         return Response({"success": False, "error": "invalid_or_expired"}, status=status.HTTP_400_BAD_REQUEST)

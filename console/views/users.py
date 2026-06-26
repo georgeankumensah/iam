@@ -1,8 +1,9 @@
 import logging
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import User
@@ -10,9 +11,15 @@ from audit.emit import emit_event
 from console.permissions import IsIAMAdmin
 from console.selectors import list_users
 from console.serializers import BulkImportSerializer, UserCreateSerializer, UserUpdateSerializer
-from console.services import create_user_in_zitadel, deactivate_user_in_zitadel
+from console.services import create_user_in_zitadel, deactivate_user_in_zitadel, reactivate_user_in_zitadel
 
 logger = logging.getLogger("iam.console.users")
+
+
+def _check_internal_secret(request):
+    if request.headers.get("X-Internal-Secret") != settings.ONBOARDING_INTERNAL_SECRET:
+        return Response({"error": "forbidden"}, status=status.HTTP_403_FORBIDDEN)
+    return None
 
 
 @api_view(["GET", "POST"])
@@ -94,7 +101,7 @@ def users_detail(request, user_id: str):
     elif request.method == "DELETE":
         if user.zitadel_user_id:
             deactivate_user_in_zitadel(str(user.zitadel_user_id))
-        user.status = User.UserStatus.DISABLED
+        user.status = "disabled"
         user.save(update_fields=["status"])
 
         emit_event(
@@ -156,7 +163,7 @@ def users_bulk_import(request):
                     role = Role.objects.filter(system_code=system_code, role_id=role_code).first()
                     if role:
                         role_ids = [str(role.id)]
-                inv, _ = invite_user(
+                inv, _code, _lookup = invite_user(
                     email=email, system_code=system_code, role_ids=role_ids,
                     invited_by=request.user, return_code=False,
                 )
@@ -184,3 +191,95 @@ def users_bulk_import(request):
     )
 
     return Response({"success": True, "data": {"results": results}})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def internal_users_list(request):
+    """Internal bridge for login-app admin — list users (paginated)."""
+    err = _check_internal_secret(request)
+    if err:
+        return err
+
+    user_type = request.query_params.get("user_type")
+    status_q = request.query_params.get("status")
+    search = request.query_params.get("search")
+    page = int(request.query_params.get("page", 1))
+    page_size = int(request.query_params.get("page_size", 50))
+
+    qs = list_users(user_type=user_type, status=status_q, search=search)
+    total = qs.count()
+    start = (page - 1) * page_size
+    end = start + page_size
+
+    from accounts.serializers import UserSerializer
+
+    serializer = UserSerializer(qs[start:end], many=True)
+    return Response({
+        "success": True,
+        "data": serializer.data,
+        "meta": {"page": page, "page_size": page_size, "total": total},
+    })
+
+
+@api_view(["DELETE"])
+@permission_classes([AllowAny])
+def internal_user_delete(request, user_id: str):
+    """Internal bridge for login-app admin — soft-delete (deactivate) a user."""
+    try:
+        err = _check_internal_secret(request)
+        if err:
+            return err
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.zitadel_user_id:
+            try:
+                deactivate_user_in_zitadel(str(user.zitadel_user_id))
+            except Exception as e:
+                logger.warning("ZITADEL deactivation failed for %s: %s", user.zitadel_user_id, e)
+        user.status = "disabled"
+        user.save(update_fields=["status"])
+
+        return Response({"success": True}, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error("internal_user_delete failed: %s", e, exc_info=True)
+        return Response({"error": f"internal: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def internal_user_reactivate(request, user_id: str):
+    """Internal bridge for login-app admin — reactivate a disabled user."""
+    try:
+        err = _check_internal_secret(request)
+        if err:
+            return err
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.status != "disabled":
+            return Response(
+                {"error": "User is not disabled"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user.zitadel_user_id:
+            try:
+                reactivate_user_in_zitadel(str(user.zitadel_user_id))
+            except Exception as e:
+                logger.warning("ZITADEL reactivation failed for %s: %s", user.zitadel_user_id, e)
+
+        user.status = "pre_active"
+        user.save(update_fields=["status"])
+
+        return Response({"success": True}, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error("internal_user_reactivate failed: %s", e, exc_info=True)
+        return Response({"error": f"internal: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

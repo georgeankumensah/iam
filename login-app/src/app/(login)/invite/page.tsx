@@ -6,12 +6,16 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { PasswordInput } from "@/components/PasswordInput";
+import { Input } from "@/components/Input";
 
 function InviteContent() {
   const searchParams = useSearchParams();
-  const userId = searchParams.get("userID") || searchParams.get("userId") || "";
+  const token = searchParams.get("t") || "";
   const code = searchParams.get("code") || "";
+  const email = searchParams.get("email") || "";
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +24,14 @@ function InviteContent() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!firstName.trim()) {
+      setError("First name is required");
+      return;
+    }
+    if (!lastName.trim()) {
+      setError("Last name is required");
+      return;
+    }
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
       return;
@@ -33,7 +45,7 @@ function InviteContent() {
       const resp = await fetch("/api/invite/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, code, password }),
+        body: JSON.stringify({ token, code, password, firstName, lastName }),
       });
       if (!resp.ok) {
         const data = await resp.json();
@@ -49,7 +61,7 @@ function InviteContent() {
     }
   }
 
-  if (!userId || !code) {
+  if (!token || !code) {
     return (
       <Card>
         <div className="text-center text-[14px] text-[#777]">This invitation link is invalid or incomplete.</div>
@@ -62,22 +74,42 @@ function InviteContent() {
       <div className="text-center">
         <h1 className="text-[28px] font-bold text-black">Complete Your Account Setup</h1>
         <p className="mx-auto mt-3 max-w-[500px] text-[15px] leading-6 text-[#999]">
-          You have been invited to access a CLET system. Set your password to activate your account.
+          You have been invited to access a CLET system. Fill in your details and set a password to activate your account.
         </p>
-      </div>
-      <div className="mx-auto mt-7 rounded-[8px] bg-[#f7f7f7] px-5 py-3 text-left">
-        <p className="text-[12px] uppercase tracking-wide text-[#777]">Invitation</p>
-        <p className="mt-1 break-all text-[13px] font-medium text-black">User ID: {userId}</p>
       </div>
       <ErrorAlert message={error} className="mb-4" />
       <form onSubmit={handleSubmit} className="mx-auto mt-7 max-w-[500px] space-y-4">
+        <p className="text-[15px] font-semibold text-black">Your Details</p>
+        <Input
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          placeholder="First name"
+          autoComplete="given-name"
+          autoFocus
+          required
+        />
+        <Input
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          placeholder="Last name"
+          autoComplete="family-name"
+          required
+        />
+        {email && (
+          <Input
+            value={email}
+            placeholder="Email"
+            autoComplete="email"
+            disabled
+            className="opacity-60"
+          />
+        )}
         <p className="text-[15px] font-semibold text-black">Set Your Password</p>
         <PasswordInput
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
           autoComplete="new-password"
-          autoFocus
           required
         />
         <PasswordInput
@@ -87,7 +119,7 @@ function InviteContent() {
           autoComplete="new-password"
           required
         />
-        <Button type="submit" loading={loading} disabled={!password || !confirm}>
+        <Button type="submit" loading={loading} disabled={!firstName || !lastName || !password || !confirm}>
           Activate account
         </Button>
       </form>
