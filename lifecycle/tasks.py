@@ -6,19 +6,54 @@ from django.utils import timezone
 logger = logging.getLogger("iam.lifecycle.tasks")
 
 
+# Handler result statuses that indicate the event could not be applied cleanly
+# and needs human resolution (vs a transient failure that can be replayed).
+_CONFLICT_RESULTS = {"not_found", "conflict"}
+_OK_RESULTS = {"created", "updated", "disabled"}
+
+
 @shared_task
-def handle_hrms_event(event_type: str, payload: dict):
+def handle_hrms_event(event_type: str, payload: dict, event_id: str | None = None):
     logger.info("Processing HRMS event: %s", event_type)
 
-    if event_type == "hrms.joiner":
-        return _process_joiner(payload)
-    elif event_type == "hrms.mover":
-        return _process_mover(payload)
-    elif event_type == "hrms.leaver":
-        return _process_leaver(payload)
+    try:
+        if event_type == "hrms.joiner":
+            result = _process_joiner(payload)
+        elif event_type == "hrms.mover":
+            result = _process_mover(payload)
+        elif event_type == "hrms.leaver":
+            result = _process_leaver(payload)
+        else:
+            logger.warning("Unknown HRMS event type: %s", event_type)
+            result = {"status": "unknown_event"}
+    except Exception as e:  # noqa: BLE001
+        logger.exception("HRMS event %s failed", event_type)
+        result = {"status": "error", "detail": str(e)}
+
+    if event_id:
+        _record_event_outcome(event_id, result)
+    return result
+
+
+def _record_event_outcome(event_id: str, result: dict) -> None:
+    from django.utils import timezone
+
+    from .models import HrmsEvent
+
+    rstatus = result.get("status", "")
+    if rstatus in _OK_RESULTS:
+        status = HrmsEvent.Status.PROCESSED
+    elif rstatus in _CONFLICT_RESULTS:
+        status = HrmsEvent.Status.CONFLICT
     else:
-        logger.warning("Unknown HRMS event type: %s", event_type)
-        return {"status": "unknown_event"}
+        status = HrmsEvent.Status.FAILED
+
+    HrmsEvent.objects.filter(id=event_id).update(
+        status=status,
+        result=result,
+        error="" if status != HrmsEvent.Status.FAILED else result.get("detail", rstatus),
+        processed_at=timezone.now(),
+    )
 
 
 def _process_joiner(payload: dict) -> dict:

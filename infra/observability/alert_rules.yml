@@ -1,0 +1,31 @@
+# SLO + token-size alerts for IAM System 19 (IAM-N05, IAM-N08).
+groups:
+  - name: iam-slo
+    rules:
+      # IAM-N05: interactive login p95 < 2s
+      - alert: LoginLatencyP95High
+        expr: histogram_quantile(0.95, sum by (le) (rate(iam_http_request_duration_seconds_bucket{endpoint=~"/login.*"}[5m]))) > 2
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Login p95 latency above 2s SLO"
+          description: "p95 login latency has exceeded the 2s SLO for 10 minutes."
+
+      # IAM-N05: token introspection p95 < 50ms (served by Zitadel; alert on its histogram if exposed)
+      - alert: IntrospectionLatencyP95High
+        expr: histogram_quantile(0.95, sum by (le) (rate(iam_http_request_duration_seconds_bucket{endpoint=~"/oidc/introspect.*"}[5m]))) > 0.05
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Introspection p95 latency above 50ms SLO"
+
+  - name: iam-token-size
+    rules:
+      # IAM-N08: token-size 6KB warning alert (the 8KB hard limit is a CI gate, not runtime).
+      - alert: ZitadelTokenSizeHigh
+        expr: iam_zitadel_token_size_bytes > 6144
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Zitadel token size above 6KB"
+          description: "{{ $labels.token_type }} token exceeds 6KB; trim custom claims before it hits the 8KB CI gate."

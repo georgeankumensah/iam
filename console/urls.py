@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from .views import (
     access_reviews,
@@ -6,6 +6,7 @@ from .views import (
     clients,
     dashboard,
     delegations,
+    hrms,
     rbac_matrix,
     roles,
     systems,
@@ -44,7 +45,12 @@ urlpatterns = [
     path("rbac/matrix", rbac_matrix.rbac_matrix, name="admin_rbac_matrix"),
     path("delegations", delegations.delegations_list, name="admin_delegations"),
     path("delegations/<uuid:delegation_id>/revoke", delegations.delegation_revoke, name="admin_delegation_revoke"),
+    path("hrms-events", hrms.hrms_events, name="admin_hrms_events"),
+    path("hrms-events/<uuid:event_id>/replay", hrms.hrms_event_replay, name="admin_hrms_event_replay"),
+    path("hrms-events/move-conflicts", hrms.hrms_move_conflicts, name="admin_hrms_move_conflicts"),
+    path("hrms-events/<uuid:event_id>/resolve", hrms.hrms_move_conflict_resolve, name="admin_hrms_conflict_resolve"),
     path("audit", audit.audit_search, name="admin_audit"),
     path("audit/verify", audit.audit_verify, name="admin_audit_verify"),
     path("audit/export", audit.audit_export, name="admin_audit_export"),
+    path("residency/", include("compliance.urls")),
 ]

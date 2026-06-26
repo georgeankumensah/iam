@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "pam",
     "lifecycle",
     "audit",
+    "compliance",
     "console",
     "api.auth",
 ]
@@ -140,6 +141,10 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Centralised Identity, Authentication, Authorisation & Access-Control Platform",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "core.schema.add_health_endpoints",
+    ],
 }
 
 CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if os.environ.get("CORS_ALLOWED_ORIGINS") else []
@@ -277,3 +282,16 @@ PAM_VAULT_ADDR = os.environ.get("PAM_VAULT_ADDR", "")
 PAM_VAULT_TOKEN = os.environ.get("PAM_VAULT_TOKEN", "")
 PAM_JUMPSERVER_API_URL = os.environ.get("PAM_JUMPSERVER_API_URL", "")
 PAM_JUMPSERVER_API_TOKEN = os.environ.get("PAM_JUMPSERVER_API_TOKEN", "")
+
+# Per-user-type session & MFA policy profiles (IAM-F07/TYPE-5).
+# Used by accounts/management/commands/configure_session_policies.py and
+# referenced at runtime by the login flow to determine per-type MFA mandate.
+USER_TYPE_POLICIES = {
+    "default": {"force_mfa": True, "session_idle_lifetime": "864000s", "session_max_lifetime": "2592000s"},
+    "public": {"force_mfa": False, "session_idle_lifetime": "3600s", "session_max_lifetime": "86400s"},
+    "staff": {"force_mfa": True, "session_idle_lifetime": "28800s", "session_max_lifetime": "86400s"},
+    "board": {"force_mfa": True, "session_idle_lifetime": "14400s", "session_max_lifetime": "43200s"},
+    "nbec": {"force_mfa": True, "session_idle_lifetime": "14400s", "session_max_lifetime": "43200s"},
+    "student": {"force_mfa": False, "session_idle_lifetime": "7200s", "session_max_lifetime": "86400s"},
+    "external": {"force_mfa": False, "session_idle_lifetime": "3600s", "session_max_lifetime": "86400s"},
+}

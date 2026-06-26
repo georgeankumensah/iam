@@ -31,6 +31,11 @@ celery_task_runtime_seconds = Histogram(
     buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0),
 )
 
+backchannel_logout_failures_total = Counter(
+    "iam_backchannel_logout_failures_total",
+    "Total backchannel logout failures",
+)
+
 pam_session_count = Gauge(
     "iam_pam_sessions_active",
     "Number of active PAM sessions",

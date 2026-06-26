@@ -4,7 +4,8 @@
 
 | Component | Method | Frequency | Retention |
 |-----------|--------|-----------|-----------|
-| PostgreSQL | `pg_dump --format=custom` + GPG-encrypted → S3 | Daily (02:00 GMT) | 30 days (S3 lifecycle) |
+| PostgreSQL (primary) | `pg_dump --format=custom` + GPG-encrypted → S3 | Daily (02:00 GMT) | 30 days (S3 lifecycle) |
+| PostgreSQL (replica) | Streaming replication (WAL) | Real-time | — |
 | Zitadel | Zitadel export API (manual trigger) | Weekly | 90 days |
 | Redis | RDB snapshot (K8s PV snapshot) | Hourly | 24 hours |
 | K8s Secrets | Sealed Secrets / Vault | On change | Git history |
@@ -57,6 +58,19 @@ curl -f https://iam-api.clet.gov.gh/health/live
 curl -f https://iam-api.clet.gov.gh/health/ready
 python manage.py check_zitadel_drift
 ```
+
+## Capacity & Load Testing
+
+| Test | Tool | Command |
+|------|------|---------|
+| API health endpoints | locust | `locust -f tests/load/locustfile.py --host https://iam-api.clet.gov.gh --users 100 --spawn-rate 10 --run-time 5m --headless` |
+| Token issuance | locust | Same file — IAMAPIUser exercises login + /v1/me/ |
+| Contract validation | schemathesis | `st run --base-url=http://localhost:8000 /api/schema/ --checks all` |
+
+Targets:
+- 10× normal peak traffic (HTTP 200 within 500ms p95)
+- Login completion < 2s p95
+- Token introspection < 50ms p95
 
 ## Expected RTO
 
