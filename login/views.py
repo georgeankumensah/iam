@@ -164,22 +164,19 @@ def _handle_authorization_code(request, code: str):
         logger.error("No id_token in token response")
         return redirect(f"{_LOGIN_APP_URL}/error?error=no_id_token")
 
-    from uuid import UUID
-
-    from jose import jwt as jose_jwt
-    from jose.exceptions import JOSEError
+    from jose.exceptions import JWSError
 
     from accounts.models import User
+    from oidc_rp.auth import verify_jwt_token
     try:
-        claims = jose_jwt.get_unverified_claims(id_token)
+        claims = verify_jwt_token(id_token)
         sub = claims.get("sub", "")
         email = claims.get("email", "")
-        zitadel_uuid = UUID(int=int(sub))
         try:
-            user = User.objects.get(zitadel_user_id=zitadel_uuid)
+            user = User.objects.get(zitadel_user_id=sub)
         except User.DoesNotExist:
             user = User.objects.create(
-                zitadel_user_id=zitadel_uuid,
+                zitadel_user_id=sub,
                 email=email,
                 user_type="external",
                 status="active",
@@ -191,11 +188,10 @@ def _handle_authorization_code(request, code: str):
             parsed = urlparse(state)
             redirect_url = state if parsed.scheme else (settings.LOGIN_REDIRECT_URL or "/")
             if access_token:
-                separator = "&" if "?" in redirect_url else "?"
-                redirect_url = f"{redirect_url}{separator}admin_token={access_token}"
+                request.session["admin_token"] = access_token
             return redirect(redirect_url)
         else:
             return redirect(f"{_LOGIN_APP_URL}/error?error=account_disabled")
-    except JOSEError as e:
+    except (JWSError, Exception) as e:
         logger.error("ID token validation failed: %s", e)
         return redirect(f"{_LOGIN_APP_URL}/error?error=invalid_id_token")

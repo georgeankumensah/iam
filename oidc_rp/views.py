@@ -9,6 +9,24 @@ from rest_framework.permissions import IsAuthenticated
 from core.responses import error_response, success_response
 
 
+@api_view(["GET"])
+def validate_logout_redirect(request):
+    """Check if a redirect_uri is registered in any OIDCClient's
+    post_logout_redirect_uris."""
+    from clients.models import OIDCClient
+
+    uri = request.GET.get("uri", "")
+    if not uri:
+        return success_response(data={"valid": False})
+
+    for client in OIDCClient.objects.all():
+        for registered in (client.post_logout_redirect_uris or []):
+            if uri.rstrip("/") == registered.rstrip("/"):
+                return success_response(data={"valid": True})
+
+    return success_response(data={"valid": False})
+
+
 def logout_view(request):
     id_token_hint = request.GET.get("id_token_hint", "")
     state = request.GET.get("state", "")
@@ -118,6 +136,18 @@ def my_sessions(request):
         for s in sessions
     ]
     return success_response(data=data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def admin_token_view(request):
+    """One-time retrieval of the admin access_token stored in the session
+    during the OIDC code exchange. Cleared after first read to avoid leaking
+    through session replay."""
+    token = request.session.pop("admin_token", None)
+    if not token:
+        return error_response(message="no admin token available", status_code=404)
+    return success_response(data={"access_token": token})
 
 
 @api_view(["DELETE"])

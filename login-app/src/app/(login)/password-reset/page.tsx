@@ -53,7 +53,7 @@ function PasswordResetContent() {
       <h1 className="text-center text-[28px] font-bold text-black">Reset your password</h1>
       <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">Enter your email address and we&apos;ll send you a reset link.</p>
       <ErrorAlert message={error} className="mb-4" />
-      <form onSubmit={handleSubmit} className="mx-auto max-w-[460px]">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-[460px] space-y-4">
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="email" autoFocus required />
         <Button type="submit" loading={loading}>Send reset link</Button>
         <p className="mt-4 text-center text-[13px] text-[#777]">

@@ -384,11 +384,31 @@ export async function deleteSession(sessionId: string) {
 
 // Reads a session using the service-user token (not the session token, which
 // Zitadel rejects for this endpoint with 403 AUTHZ-Kl3p0). Used to verify a
-// session is still alive for the cross-app session-status check.
+// session is still alive and check its authentication level.
 export async function getSessionAsService(sessionId: string) {
   return fetchFromZitadel<{
-    session: { id: string; factors?: { user?: { id: string } } };
+    session: {
+      id: string;
+      factors?: {
+        user?: { id: string };
+        password?: { verifiedAt?: string };
+        webAuthN?: { verifiedAt?: string };
+        totp?: { verifiedAt?: string };
+        otpSms?: { verifiedAt?: string };
+        otpEmail?: { verifiedAt?: string };
+      };
+    };
   }>(`/v2/sessions/${encodeURIComponent(sessionId)}`);
+}
+
+// Returns true if the session has satisfied MFA (any second factor verified).
+export function sessionHasMfa(factors: {
+  webAuthN?: { verifiedAt?: string };
+  totp?: { verifiedAt?: string };
+  otpSms?: { verifiedAt?: string };
+  otpEmail?: { verifiedAt?: string };
+}): boolean {
+  return !!(factors.webAuthN?.verifiedAt || factors.totp?.verifiedAt || factors.otpSms?.verifiedAt || factors.otpEmail?.verifiedAt);
 }
 
 export async function listUserSessions(userId: string) {

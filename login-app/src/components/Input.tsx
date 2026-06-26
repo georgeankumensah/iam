@@ -13,7 +13,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : props.name) || "input";
 
     return (
-      <div className="mb-4">
+      <div>
         {label ? (
           <label htmlFor={inputId} className="mb-1.5 block text-[13px] font-medium text-[#555]">
             {label}

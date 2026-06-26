@@ -1,8 +1,35 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
+
+const ALLOWED_ORIGINS: string[] = [
+  "http://localhost:3000",
+  "http://localhost:8000",
+  "http://localhost:8080",
+];
+
+function isValidRedirect(url: string): boolean {
+  if (url.startsWith("/")) return true;
+  try {
+    const parsed = new URL(url);
+    return ALLOWED_ORIGINS.some((o) => parsed.origin === o);
+  } catch {
+    return false;
+  }
+}
+
+async function validateRedirect(uri: string): Promise<boolean> {
+  if (isValidRedirect(uri)) return true;
+  try {
+    const resp = await fetch(`/api/validate-redirect?uri=${encodeURIComponent(uri)}`);
+    const data = await resp.json();
+    return data?.valid === true;
+  } catch {
+    return false;
+  }
+}
 
 function LogoutContent() {
   const searchParams = useSearchParams();
@@ -10,6 +37,8 @@ function LogoutContent() {
   const [status, setStatus] = useState("Signing out...");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function doLogout() {
       try {
         await fetch("/api/logout", { method: "POST" });
@@ -18,14 +47,19 @@ function LogoutContent() {
       }
 
       if (redirectUri) {
-        window.location.href = redirectUri;
-        return;
+        const valid = await validateRedirect(redirectUri);
+        if (!cancelled && valid) {
+          window.location.href = redirectUri;
+          return;
+        }
       }
 
-      setStatus("You have been signed out.");
+      if (!cancelled) setStatus("You have been signed out.");
     }
 
     doLogout();
+
+    return () => { cancelled = true; };
   }, [redirectUri]);
 
   return (

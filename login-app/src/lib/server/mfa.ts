@@ -1,6 +1,9 @@
 import "server-only";
 import { getLoginSettings, listUserAuthMethods } from "./zitadel-client";
+import { createLogger } from "../logger";
 import type { SessionData } from "./session";
+
+const logger = createLogger("mfa");
 
 const DJANGO_BASE_URL = process.env.IAM_DJANGO_BASE_URL || "http://localhost:8000";
 
@@ -13,14 +16,14 @@ export function djangoCompletionUrl(authRequest: string): string {
 const FACTOR_ROUTES: Record<string, { factor: string; path: (ar: string) => string }> = {
   AUTHENTICATION_METHOD_TYPE_TOTP: { factor: "totp", path: (ar) => `/mfa/totp?authRequest=${ar}` },
   AUTHENTICATION_METHOD_TYPE_U2F: { factor: "u2f", path: (ar) => `/u2f?authRequest=${ar}` },
-  AUTHENTICATION_METHOD_TYPE_PASSWORDLESS: { factor: "passkey", path: (ar) => `/passkey?authRequest=${ar}` },
+  AUTHENTICATION_METHOD_TYPE_PASSKEY: { factor: "passkey", path: (ar) => `/passkey?authRequest=${ar}` },
   AUTHENTICATION_METHOD_TYPE_OTP_SMS: { factor: "sms", path: (ar) => `/otp/sms?authRequest=${ar}` },
   AUTHENTICATION_METHOD_TYPE_OTP_EMAIL: { factor: "email", path: (ar) => `/otp/email?authRequest=${ar}` },
 };
 
 // Preference order when a user has several factors registered.
 const FACTOR_PRIORITY = [
-  "AUTHENTICATION_METHOD_TYPE_PASSWORDLESS",
+  "AUTHENTICATION_METHOD_TYPE_PASSKEY",
   "AUTHENTICATION_METHOD_TYPE_TOTP",
   "AUTHENTICATION_METHOD_TYPE_U2F",
   "AUTHENTICATION_METHOD_TYPE_OTP_EMAIL",
@@ -37,10 +40,17 @@ export interface NextStep {
 // existing second factor, or enrol one. With forceMfa on, "done" only occurs
 // if the policy is somehow disabled.
 export async function decideNextStep(userId: string, authRequest: string): Promise<NextStep> {
-  const [{ data: settings }, { data: methods }] = await Promise.all([
+  const [{ data: settings, error: settingsErr }, { data: methods, error: methodsErr }] = await Promise.all([
     getLoginSettings(),
     listUserAuthMethods(userId),
   ]);
+
+  if (settingsErr) {
+    logger.error("Failed to fetch login settings", { userId, error: settingsErr });
+  }
+  if (methodsErr) {
+    logger.error("Failed to fetch user auth methods", { userId, error: methodsErr });
+  }
 
   const forceMfa = Boolean(settings?.settings?.forceMfa || settings?.settings?.forceMfaLocalOnly);
   const types = (methods?.authMethodTypes ?? []).filter((t) => t in FACTOR_ROUTES);

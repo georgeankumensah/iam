@@ -8,7 +8,12 @@ import { completeAuthentication } from "@/lib/server/mfa";
 // reused for the session check (replay protection), asks the page to send the
 // user to the normal TOTP challenge for a fresh code.
 export async function POST(request: NextRequest) {
-  const { code, authRequest } = await request.json();
+  let code: string, authRequest: string;
+  try {
+    ({ code = "", authRequest = "" } = await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
   const session = parseSessionCookie(request.cookies.get("zitadel-session")?.value);
   if (!session) {
     return NextResponse.json({ error: "Session expired, please sign in again" }, { status: 401 });

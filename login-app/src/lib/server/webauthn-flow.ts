@@ -45,7 +45,15 @@ export async function webauthnVerify(request: NextRequest): Promise<NextResponse
     return NextResponse.json({ error: "Session expired, please sign in again" }, { status: 401 });
   }
 
-  const { assertion, authRequest } = await request.json();
+  let assertion: unknown, authRequest: string;
+  try {
+    ({ assertion, authRequest = "" } = await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  if (!assertion) {
+    return NextResponse.json({ error: "Missing assertion" }, { status: 400 });
+  }
   const { data, error } = await updateSession(session.id, {
     checks: { webAuthN: { credentialAssertionData: assertion } },
   });

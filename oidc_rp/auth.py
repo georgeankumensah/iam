@@ -11,6 +11,47 @@ from rest_framework.request import Request
 logger = logging.getLogger("iam.oidc.auth")
 
 
+def _fetch_jwks() -> list[dict[str, Any]]:
+    import requests
+    resp = requests.get(settings.OIDC_OP_JWKS_ENDPOINT, timeout=10)
+    resp.raise_for_status()
+    return resp.json().get("keys", [])
+
+
+def verify_jwt_token(
+    token: str,
+    audience: str | None = None,
+    issuer: str | None = None,
+) -> dict[str, Any]:
+    """Verify a JWT from ZITADEL using the JWKS endpoint.
+
+    Returns the decoded payload on success, raises on failure.
+    """
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header.get("kid")
+
+    jwks = _fetch_jwks()
+    signing_key = None
+    for key in jwks:
+        if key.get("kid") == kid:
+            signing_key = key
+            break
+
+    if not signing_key:
+        raise JWSError("No matching signing key found in JWKS")
+
+    public_key = jwk.construct(signing_key)
+    payload = jwt.decode(
+        token,
+        public_key,
+        algorithms=["RS256"],
+        audience=[audience or settings.OIDC_RP_CLIENT_ID],
+        issuer=issuer or settings.ZITADEL_HOST,
+        options={"verify_exp": True, "verify_at_hash": False},
+    )
+    return payload
+
+
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request: Request):
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
@@ -19,7 +60,7 @@ class JWTAuthentication(BaseAuthentication):
 
         token = auth_header.removeprefix("Bearer ")
         try:
-            payload = self._validate_token(token)
+            payload = verify_jwt_token(token)
             user = self._get_user(payload)
             return (user, payload)
         except AuthenticationFailed:
@@ -30,43 +71,6 @@ class JWTAuthentication(BaseAuthentication):
 
     def authenticate_header(self, request):  # noqa: ARG002
         return 'Bearer realm="iam"'
-
-    def _validate_token(self, token: str) -> dict[str, Any]:
-        unverified_header = jwt.get_unverified_header(token)
-        kid = unverified_header.get("kid")
-
-        jwks_url = settings.OIDC_OP_JWKS_ENDPOINT
-        import requests
-        resp = requests.get(jwks_url, timeout=10)
-        resp.raise_for_status()
-        jwks = resp.json()
-
-        signing_key = None
-        for key in jwks.get("keys", []):
-            if key.get("kid") == kid:
-                signing_key = key
-                break
-
-        if not signing_key:
-            raise AuthenticationFailed("No matching signing key")
-
-        public_key = jwk.construct(signing_key)
-        try:
-            payload = jwt.decode(
-                token,
-                public_key,
-                algorithms=["RS256"],
-                audience=[settings.OIDC_RP_CLIENT_ID],
-                issuer=settings.ZITADEL_HOST,
-                options={"verify_exp": True, "verify_at_hash": False},
-            )
-            return payload
-        except ExpiredSignatureError:
-            raise AuthenticationFailed("Token expired") from None
-        except JWTClaimsError as e:
-            raise AuthenticationFailed(f"Token claims error: {e}") from e
-        except JWSError:
-            raise AuthenticationFailed("Token signature invalid") from None
 
     def _get_user(self, payload: dict[str, Any]):
         from accounts.models import User

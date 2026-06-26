@@ -33,7 +33,7 @@ export default function DeviceAuthPage() {
       <h1 className="text-center text-[28px] font-bold text-black">Device Authorization</h1>
       <p className="mx-auto mb-7 mt-4 max-w-[430px] text-center text-[15px] leading-6 text-[#999]">Enter the code displayed on your device.</p>
       <ErrorAlert message={error} className="mb-4" />
-      <form onSubmit={handleSubmit} className="mx-auto max-w-[460px]">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-[460px] space-y-4">
         <Input type="text" value={userCode} onChange={(e) => setUserCode(e.target.value.toUpperCase())}
           placeholder="XXXX-XXXX" autoFocus required />
         <Button type="submit" loading={loading}>Verify</Button>

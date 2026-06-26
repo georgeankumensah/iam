@@ -10,7 +10,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Session expired, please sign in again" }, { status: 401 });
   }
 
-  const { passkeyId, credential } = await request.json();
+  let passkeyId: string, credential: unknown;
+  try {
+    ({ passkeyId = "", credential } = await request.json());
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
   const { error } = await verifyPasskeyRegistration(session.userId, passkeyId, credential, "Passkey");
   if (error) {
     return NextResponse.json({ error: "Passkey registration failed" }, { status: 400 });

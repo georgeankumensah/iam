@@ -3,6 +3,9 @@ import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from jose.exceptions import JWSError
+
+from oidc_rp.auth import verify_jwt_token
 
 logger = logging.getLogger("iam.oidc.backchannel")
 
@@ -16,8 +19,7 @@ def backchannel_logout(request):
         return JsonResponse({"error": "missing_token"}, status=400)
 
     try:
-        from jose import jwt as jose_jwt
-        payload = jose_jwt.get_unverified_claims(logout_token)
+        payload = verify_jwt_token(logout_token)
         sub = payload.get("sub", "")
         sid = payload.get("sid", "")
         events = payload.get("events", {})
@@ -37,6 +39,6 @@ def backchannel_logout(request):
             ActiveSession.objects.filter(jti=sid).update(revoked=True)
 
         return JsonResponse({"status": "ok"})
-    except Exception as e:
+    except (JWSError, Exception) as e:
         logger.error("Backchannel logout processing failed: %s", e)
         return JsonResponse({"error": "processing_failed"}, status=500)

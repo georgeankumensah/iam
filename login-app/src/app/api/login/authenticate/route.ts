@@ -10,10 +10,13 @@ export async function POST(request: NextRequest) {
     const { email, password, authRequest } = await request.json();
 
     const userResult = await checkUserByEmail(email || "");
-    const userId = userResult.data?.userId || "0";
+    if (!userResult.data) {
+      return NextResponse.json(FAIL, { status: 401 });
+    }
+    const userId = userResult.data.userId;
 
     const sessionResult = await createSession(userId, password || "");
-    if (!sessionResult.data || !userResult.data) {
+    if (!sessionResult.data) {
       return NextResponse.json(FAIL, { status: 401 });
     }
 

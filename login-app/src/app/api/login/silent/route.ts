@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSessionAsService } from "@/lib/server/zitadel-client";
+import { getSessionAsService, sessionHasMfa } from "@/lib/server/zitadel-client";
 import { djangoCompletionUrl } from "@/lib/server/mfa";
 import { parseSessionCookie } from "@/lib/server/session";
 
@@ -22,6 +22,11 @@ export async function POST(request: NextRequest) {
     const { data: activeSession, error } = await getSessionAsService(session.id);
     if (error || !activeSession?.session?.id) {
       return NextResponse.json({ error: "login_required" }, { status: 401 });
+    }
+
+    const factors = activeSession.session.factors || {};
+    if (!sessionHasMfa(factors)) {
+      return NextResponse.json({ error: "mfa_required" }, { status: 401 });
     }
 
     return NextResponse.json({ redirectUrl: djangoCompletionUrl(authRequest) });

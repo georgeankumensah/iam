@@ -27,7 +27,13 @@ export function useAuth(): UseAuthResult {
       } catch {
         // Best-effort token revocation
       }
-      await oidc.signoutRedirect();
+      try {
+        await oidc.signoutRedirect();
+      } catch {
+        // ZITADEL session may already be dead (e.g. logged out from another
+        // app). Clear local state instead of showing an error redirect.
+        await oidc.removeUser();
+      }
     },
     get_access_token: async () => {
       return oidc.user?.access_token;

@@ -9,8 +9,13 @@ import { completeAuthentication } from "@/lib/server/mfa";
 //
 // Requires an SMS provider (SMS) / SMTP (Email) configured in Zitadel; without
 // them the "request" step returns an error explaining the code can't be sent.
+const VALID_OTP_METHODS = new Set(["sms", "email"]);
+
 export async function POST(request: NextRequest, ctx: { params: Promise<{ method: string }> }) {
   const { method } = await ctx.params;
+  if (!VALID_OTP_METHODS.has(method)) {
+    return NextResponse.json({ error: `Invalid OTP method: ${method}` }, { status: 400 });
+  }
   const channel = method === "sms" ? "otpSms" : "otpEmail";
 
   const session = parseSessionCookie(request.cookies.get("zitadel-session")?.value);
@@ -18,7 +23,15 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ method
     return NextResponse.json({ error: "Session expired, please sign in again" }, { status: 401 });
   }
 
-  const { action, code, authRequest } = await request.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json() as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const action = String(body.action || "");
+  const code = String(body.code || "");
+  const authRequest = String(body.authRequest || "");
 
   if (action === "request") {
     const { error } = await updateSession(session.id, {

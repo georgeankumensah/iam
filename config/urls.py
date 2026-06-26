@@ -7,7 +7,7 @@ from drf_spectacular.views import (
 )
 
 from console.views.invitations import invitation_accept
-from oidc_rp.views import me_view, my_apps, my_sessions, terminate_my_session
+from oidc_rp.views import admin_token_view, me_view, my_apps, my_sessions, terminate_my_session, validate_logout_redirect
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,8 +26,10 @@ urlpatterns = [
     path("v1/me/apps", my_apps, name="my_apps"),
     path("v1/me/sessions", my_sessions, name="my_sessions"),
     path("v1/me/sessions/<str:session_id>", terminate_my_session, name="terminate_my_session"),
+    path("v1/me/admin-token", admin_token_view, name="admin_token"),
     path("delegation/", include("delegation.urls")),
     path("pam/", include("pam.urls")),
     path("health/", include("core.health_urls")),
     path("api/auth/", include("api.auth.urls")),
+    path("v1/clients/validate-logout-redirect", validate_logout_redirect, name="validate_logout_redirect"),
 ]
