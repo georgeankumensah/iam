@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const DJANGO_BASE_URL = process.env.IAM_DJANGO_BASE_URL || "http://localhost:8000";
+const DJANGO_BASE_URL = process.env.IAM_API_URL || "http://django:8000";
 const ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:8000", "http://localhost:8080"];
 
 export async function GET(request: NextRequest) {

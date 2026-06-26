@@ -5,10 +5,8 @@ import type { SessionData } from "./session";
 
 const logger = createLogger("mfa");
 
-const DJANGO_BASE_URL = process.env.IAM_DJANGO_BASE_URL || "http://localhost:8000";
-
 export function djangoCompletionUrl(authRequest: string): string {
-  return `${DJANGO_BASE_URL}/login/complete?authRequest=${encodeURIComponent(authRequest)}`;
+  return `/api/complete-auth?authRequest=${encodeURIComponent(authRequest)}`;
 }
 
 // Maps a Zitadel authentication-method-type to the login-app route that
