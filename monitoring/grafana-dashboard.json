@@ -1,0 +1,75 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "IAM Backend SLO Dashboard",
+  "uid": "iam-backend-slo",
+  "version": 1,
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(iam_http_requests_total[5m])) by (method, endpoint)", "legendFormat": "{{method}} {{endpoint}}" }
+      ]
+    },
+    {
+      "title": "Request Latency p95",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(iam_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "title": "Login Latency p95",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(iam_http_request_duration_seconds_bucket{endpoint=~\"login|token\"}[5m])) by (le))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "title": "Zitadel Token Size",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "iam_zitadel_token_size_bytes", "legendFormat": "bytes" }
+      ]
+    },
+    {
+      "title": "Active DB Connections",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        { "expr": "iam_db_connections_active" }
+      ]
+    },
+    {
+      "title": "Celery Task Duration p95",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(iam_celery_task_duration_seconds_bucket[5m])) by (le, task_name))", "legendFormat": "{{task_name}}" }
+      ]
+    },
+    {
+      "title": "Active PAM Sessions",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        { "expr": "iam_pam_sessions_active" }
+      ]
+    },
+    {
+      "title": "Error Rate & Status Codes",
+      "type": "graph",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        { "expr": "sum(rate(iam_http_requests_total{status=~\"5..\"}[5m])) by (endpoint)", "legendFormat": "5xx {{endpoint}}" },
+        { "expr": "sum(rate(iam_http_requests_total[5m])) by (status)", "legendFormat": "{{status}}" }
+      ]
+    }
+  ]
+}

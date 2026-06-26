@@ -30,7 +30,16 @@ def hrms_webhook(request):
 
     event_type = payload.get("event_type", "")
 
+    from .models import HrmsEvent
     from .tasks import handle_hrms_event
-    handle_hrms_event.delay(event_type, payload)
 
-    return JsonResponse({"status": "queued"})
+    event = HrmsEvent.objects.create(
+        event_type=event_type,
+        target_email=payload.get("email", ""),
+        payload=payload,
+        signature_valid=True,
+        status=HrmsEvent.Status.RECEIVED,
+    )
+    handle_hrms_event.delay(event_type, payload, event_id=str(event.id))
+
+    return JsonResponse({"status": "queued", "event_id": str(event.id)})

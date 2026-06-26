@@ -1,12 +1,14 @@
 from rest_framework import serializers
-from .models import AuthSession, AuthState, AuthEvent
+
+from .models import AuthEvent, AuthSession, AuthState
+
 
 class AuthSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuthSession
         fields = [
-            'id', 'user', 'session_id', 'jti', 'app_id', 
-            'expires_at', 'last_activity', 'ip_address', 
+            'id', 'user', 'session_id', 'jti', 'app_id',
+            'expires_at', 'last_activity', 'ip_address',
             'user_agent', 'is_revoked', 'revoked_at', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']

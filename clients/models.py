@@ -35,6 +35,10 @@ class OIDCClient(models.Model):
     compliance_gate_passed = models.BooleanField(default=False)
     granted_system_refs = models.JSONField(default=list, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
+    # Per-client claim allow-list.  If non-empty, only these claim keys from
+    # the complement-token target are injected into the token for this client.
+    # Keys: "user_type", "portal_access", "permissions".
+    claim_allow_list = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,7 +1,8 @@
+from uuid import uuid4
+
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
-from uuid import uuid4
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -19,7 +20,7 @@ class AuthSession(models.Model):
     is_revoked = models.BooleanField(default=False)
     revoked_at = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         indexes = [
             models.Index(fields=['user', 'app_id', 'is_revoked']),
@@ -38,7 +39,7 @@ class AuthState(models.Model):
     expires_at = models.DateTimeField(db_index=True)
     last_sync = models.DateTimeField(auto_now=True)
     state_data = models.JSONField(default=dict)
-    
+
     class Meta:
         unique_together = [['user', 'app_id']]
         indexes = [

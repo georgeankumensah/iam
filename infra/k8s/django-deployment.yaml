@@ -12,12 +12,17 @@ spec:
     metadata:
       labels:
         app: iam-django
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/health/metrics"
     spec:
       containers:
         - name: django
           image: clet/iam-django:latest
           ports:
             - containerPort: 8000
+              name: http
           env:
             - name: DJANGO_SETTINGS_MODULE
               value: "config.settings.prod"
@@ -59,21 +64,30 @@ kind: Service
 metadata:
   name: iam-django
   namespace: iam-system
+  labels:
+    app: iam-django
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/health/metrics"
 spec:
   selector:
     app: iam-django
   ports:
     - port: 8000
       targetPort: 8000
+      name: http
 ---
-apiVersion: v1
-kind: Service
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
 metadata:
   name: iam-django
   namespace: iam-system
 spec:
   selector:
-    app: iam-django
-  ports:
-    - port: 8000
-      targetPort: 8000
+    matchLabels:
+      app: iam-django
+  endpoints:
+    - port: http
+      path: /health/metrics
+      interval: 15s

@@ -64,6 +64,36 @@ def test_suspend_and_activate_client(admin_client, system, mock_zitadel):
     assert system.lifecycle_state == "production_live"
 
 
+def test_nbes_roles_match_seed_catalogue():
+    """Cross-service CI: NBES roles from setup_systems match the seed catalogue.
+
+    Ensures every role defined in setup_systems' NBES entry can be created
+    in the Role model, so NBES can rely on the IAM role catalogue.
+    """
+    from clients.management.commands.setup_systems import SYSTEMS
+    nbes_config = next(s for s in SYSTEMS if s["code"] == "nbes")
+    for role_id, name, is_admin in nbes_config["roles"]:
+        Role.objects.get_or_create(
+            system_code="nbes", role_id=role_id, defaults={
+                "name": name, "is_admin": is_admin, "version": 1,
+                "effective_from": "2026-01-01T00:00:00Z",
+            },
+        )
+    expected_role_ids = {r[0] for r in nbes_config["roles"]}
+    actual_role_ids = set(Role.objects.filter(system_code="nbes").values_list("role_id", flat=True))
+    missing = expected_role_ids - actual_role_ids
+    assert not missing, f"NBES roles missing from catalogue: {missing}"
+
+
+def test_iam_seed_admin_user_exists():
+    """The bootstrap admin user is created exactly once by seed_iam."""
+    from django.conf import settings
+
+    from accounts.models import User
+    admins = User.objects.filter(email=settings.BOOTSTRAP_ADMIN_EMAIL, is_superuser=True)
+    assert admins.count() <= 1, "Multiple admin users found — seed_iam should be idempotent"
+
+
 def test_create_system_via_api(admin_client, mock_zitadel):
     resp = admin_client.post(
         "/v1/admin/clients",

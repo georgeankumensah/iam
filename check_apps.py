@@ -1,5 +1,9 @@
-import json, os, sys, base64, time, jwt, requests
-from datetime import datetime, timedelta, timezone
+import json
+import sys
+from datetime import UTC, datetime, timedelta
+
+import jwt
+import requests
 from cryptography.hazmat.primitives import serialization
 
 ZITADEL_HOST = "http://zitadel:8080"
@@ -23,7 +27,7 @@ with open("/machinekey/zitadel-admin-sa.json") as f:
     key_data = json.load(f)
 
 private_key = serialization.load_pem_private_key(key_data["key"].encode(), password=None)
-now = datetime.now(timezone.utc)
+now = datetime.now(UTC)
 payload = {
     "iss": key_data["userId"], "sub": key_data["userId"],
     "aud": f"http://{ZITADEL_EXTERNAL_DOMAIN}",

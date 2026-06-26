@@ -1,9 +1,11 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.response import Response
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .services import AuthService, AuthStateSyncService
+from rest_framework.response import Response
+
 from .authentication import AuthTokenAuthentication
+from .services import AuthService, AuthStateSyncService
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -13,10 +15,10 @@ def auth_status(request):
     try:
         # Get user from request
         user = request.user
-        
+
         # Get all app states
         app_states = AuthStateSyncService.get_all_app_states(user)
-        
+
         # Build response
         auth_data = []
         for state in app_states:
@@ -29,7 +31,7 @@ def auth_status(request):
                 'permissions': state.permissions,
                 'roles': state.roles
             })
-        
+
         return Response({
             'success': True,
             'data': {
@@ -53,7 +55,7 @@ def create_auth_session(request):
     try:
         data = request.data
         user = request.user
-        
+
         # Validate required fields
         required_fields = ['session_id', 'jti', 'app_id', 'expires_at']
         for field in required_fields:
@@ -63,7 +65,7 @@ def create_auth_session(request):
                     'error': 'VALIDATION_ERROR',
                     'error_description': f'Missing required field: {field}'
                 }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Parse expires_at
         from django.utils.dateparse import parse_datetime
         expires_at = parse_datetime(data['expires_at'])
@@ -73,7 +75,7 @@ def create_auth_session(request):
                 'error': 'VALIDATION_ERROR',
                 'error_description': 'Invalid expires_at format'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Create session
         session = AuthService.create_session(
             user=user,
@@ -84,7 +86,7 @@ def create_auth_session(request):
             ip_address=request.META.get('REMOTE_ADDR'),
             user_agent=request.META.get('HTTP_USER_AGENT')
         )
-        
+
         return Response({
             'success': True,
             'data': {
@@ -108,7 +110,7 @@ def revoke_auth_session(request):
     try:
         data = request.data
         user = request.user
-        
+
         # Validate required fields
         if 'session_id' not in data:
             return Response({
@@ -116,10 +118,10 @@ def revoke_auth_session(request):
                 'error': 'VALIDATION_ERROR',
                 'error_description': 'Missing required field: session_id'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Revoke session
         AuthService.revoke_session(data['session_id'], user.id)
-        
+
         return Response({
             'success': True,
             'data': {
@@ -142,7 +144,7 @@ def sync_auth_state(request):
     try:
         data = request.data
         user = request.user
-        
+
         # Validate required fields
         required_fields = ['app_id', 'session_id', 'authenticated']
         for field in required_fields:
@@ -152,11 +154,11 @@ def sync_auth_state(request):
                     'error': 'VALIDATION_ERROR',
                     'error_description': f'Missing required field: {field}'
                 }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Parse optional fields
         from django.utils.dateparse import parse_datetime
         expires_at = parse_datetime(data.get('expires_at')) if data.get('expires_at') else None
-        
+
         # Sync state
         state = AuthStateSyncService.sync_auth_state(
             user=user,
@@ -170,7 +172,7 @@ def sync_auth_state(request):
                 'state_data': data.get('state_data', {})
             }
         )
-        
+
         return Response({
             'success': True,
             'data': {

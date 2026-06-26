@@ -1,6 +1,17 @@
-from django.urls import path
+from django.urls import include, path
 
-from .views import access_reviews, audit, clients, delegations, roles, systems, users
+from .views import (
+    access_reviews,
+    audit,
+    clients,
+    dashboard,
+    delegations,
+    hrms,
+    rbac_matrix,
+    roles,
+    systems,
+    users,
+)
 
 urlpatterns = [
     path("users", users.users_list, name="admin_users"),
@@ -30,9 +41,16 @@ urlpatterns = [
     path("access-reviews/<uuid:campaign_id>/complete", access_reviews.campaign_complete, name="admin_access_review_complete"),
     path("access-reviews/<uuid:campaign_id>/export", access_reviews.campaign_export, name="admin_access_review_export"),
     path("access-review-items/<uuid:item_id>/decide", access_reviews.item_decide, name="admin_access_review_decide"),
+    path("dashboard", dashboard.admin_dashboard, name="admin_dashboard"),
+    path("rbac/matrix", rbac_matrix.rbac_matrix, name="admin_rbac_matrix"),
     path("delegations", delegations.delegations_list, name="admin_delegations"),
     path("delegations/<uuid:delegation_id>/revoke", delegations.delegation_revoke, name="admin_delegation_revoke"),
+    path("hrms-events", hrms.hrms_events, name="admin_hrms_events"),
+    path("hrms-events/<uuid:event_id>/replay", hrms.hrms_event_replay, name="admin_hrms_event_replay"),
+    path("hrms-events/move-conflicts", hrms.hrms_move_conflicts, name="admin_hrms_move_conflicts"),
+    path("hrms-events/<uuid:event_id>/resolve", hrms.hrms_move_conflict_resolve, name="admin_hrms_conflict_resolve"),
     path("audit", audit.audit_search, name="admin_audit"),
     path("audit/verify", audit.audit_verify, name="admin_audit_verify"),
     path("audit/export", audit.audit_export, name="admin_audit_export"),
+    path("residency/", include("compliance.urls")),
 ]

@@ -17,7 +17,7 @@ codes. TOTP and WebAuthn work with no external dependency.
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import jwt
@@ -48,7 +48,7 @@ def _session() -> requests.Session:
 def _token(session: requests.Session) -> str:
     key = json.loads(MACHINE_KEY_PATH.read_text())
     pk = serialization.load_pem_private_key(key["key"].encode(), password=None)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     assertion = jwt.encode(
         {
             "iss": key["userId"],

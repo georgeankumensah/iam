@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import api_views, views
 
 urlpatterns = [
     path("", views.login_view, name="login"),
@@ -23,4 +23,9 @@ urlpatterns = [
     path("idp", views.login_view, name="idp"),
     path("error", views.error_view, name="login_error"),
     path("callback", views.callback_view, name="login_callback"),
+    path("api/register", api_views.register, name="api_register"),
+    path("api/login", api_views.login_auth, name="api_login"),
+    path("api/mfa/<str:factor>/", api_views.mfa_verify, name="api_mfa_verify"),
+    path("api/consent", api_views.consent_grant, name="api_consent"),
+    path("api/password-reset", api_views.password_reset, name="api_password_reset"),
 ]
