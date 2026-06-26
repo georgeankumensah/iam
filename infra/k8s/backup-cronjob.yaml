@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: iam-db-backup
+  namespace: iam-system
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: pg-dump
+              image: postgres:16-alpine
+              env:
+                - name: PGHOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: iam-db
+                      key: host
+                - name: PGPORT
+                  value: "5432"
+                - name: PGDATABASE
+                  value: "iam"
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: iam-db
+                      key: user
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: iam-db
+                      key: password
+                - name: BACKUP_BUCKET
+                  value: "clet-iam-backups"
+                - name: GPG_PASSPHRASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: iam-backup-gpg
+                      key: passphrase
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  FILENAME="iam-$(date +%Y-%m-%d-%H%M%S).pgdump"
+                  pg_dump --format=custom --compress=9 --no-owner --no-acl > /tmp/"$FILENAME"
+                  gpg --batch --symmetric --passphrase "$GPG_PASSPHRASE" -o /tmp/"$FILENAME".gpg /tmp/"$FILENAME"
+                  aws s3 cp /tmp/"$FILENAME".gpg s3://"$BACKUP_BUCKET"/postgres/"$FILENAME".gpg
+                  rm -f /tmp/"$FILENAME" /tmp/"$FILENAME".gpg
+              envFrom:
+                - secretRef:
+                    name: iam-backup-gpg
+          restartPolicy: OnFailure
+          serviceAccountName: iam-backup-sa

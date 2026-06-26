@@ -12,7 +12,7 @@ http://localhost:8025. Swap the host/credentials for a real provider in prod.
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import jwt
@@ -47,7 +47,7 @@ def _session():
 def _token(s):
     key = json.loads(MACHINE_KEY_PATH.read_text())
     pk = serialization.load_pem_private_key(key["key"].encode(), password=None)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     a = jwt.encode(
         {"iss": key["userId"], "sub": key["userId"], "aud": f"http://{DOMAIN}",
          "iat": now, "exp": now + timedelta(hours=1)},

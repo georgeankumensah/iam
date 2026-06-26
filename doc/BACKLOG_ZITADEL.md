@@ -16,32 +16,33 @@
 
 ---
 
-## Implementation status snapshot (verified 2026-06-25)
+## Implementation status snapshot (re-verified 2026-06-26)
 
 | Epic | State | Headline |
 |---|---|---|
-| IAM-F01 OIDC IdP + PKCE | 🟡 | Login flow works; no Terraform skeleton yet. |
-| IAM-F02 MFA | 🟡 | TOTP/WebAuthn/OTP via Session API; **recovery codes ⬅️ missing**. |
-| IAM-F03 RBAC + SoD | 🟡 | Catalogue, approval, SoD done; **access-review SLA sweeper missing**. |
-| IAM-F07 User types | 🟡 | Model done; per-type session/MFA policy config thin. |
-| IAM-F10 Token claims | 🟡 | Project-roles claim works; no Actions V2 / schema publish / report ⬅️. |
-| REQ-F000 Admin Console | 🟡 | Users/roles/clients/audit done; **dashboard ⬅️ + RBAC-matrix ⬅️ missing**. |
-| IAM-F06 HRMS lifecycle | 🟡 | SCIM + joiner/mover/leaver handlers; **timed jobs unscheduled** ⬅️. |
-| IAM-F11 OIDC clients | 🟡 | Lifecycle + manual rotation; **auto-rotation + drift ⬅️ missing**. |
-| IAM-N04 Audit chain | 🟡 | Per-event SHA-256 chain + verify done; **daily root + forwarding not scheduled**. |
-| IAM-F08 Self-registration | 🟡 | Reg/verify via login-app; rate-limit/disposable/purge thin ⬅️. |
+| IAM-F01 OIDC IdP + PKCE | 🟡 | Login flow works; **no Terraform IaC** (config is imperative). |
+| IAM-F02 MFA | ✅ | TOTP/WebAuthn/OTP via Session API; recovery codes now implemented + routed. |
+| IAM-F03 RBAC + SoD | ✅ | Catalogue, approval, SoD, access-review sweeper all done + scheduled. |
+| IAM-F07 User types | 🟡 | Model + metadata done; per-type session/MFA policy config still thin. |
+| IAM-F10 Token claims | ✅ | Actions V2 `complement_token` wired + claim schema published; CLM-4 filtering partial. |
+| REQ-F000 Admin Console | ✅ | Users/roles/clients/audit + dashboard + RBAC-matrix now present. |
+| IAM-F06 HRMS lifecycle | 🟡 | SCIM + handlers + timed jobs done; **hrms-stub + admin hrms-events/replay missing**. |
+| IAM-F11 OIDC clients | ✅ | Lifecycle + scheduled auto-rotation + `check_zitadel_drift` command. |
+| IAM-N04 Audit chain | ✅ | Per-event chain + verify + daily anchor + outbox forwarding all scheduled. |
+| IAM-F08 Self-registration | 🟡 | Reg/verify + purge scheduled; disposable/per-IP block-lists still thin. |
 | IAM-F09 Logout / SLO | 🟡 | Back-channel endpoint exists; delivery-SLA + failure audit unverified. |
-| IAM-F04 Delegation | 🟡 | Model + webhook + expire task; **expire task unscheduled + DG-notify ⬅️ missing**. |
-| IAM-F05 PAM | ❌ | Only start/end session skeleton; Vault/JumpServer/recording not built. |
-| IAM-N08/N05 Observability | ❌ | No Prometheus / OTel / metrics at all. |
+| IAM-F04 Delegation | ✅ | Model + webhook + scheduled expire + DG-24h-notice. |
+| IAM-F05 PAM | 🟡 | Recording-anchor + cleanup tasks added; Vault/JumpServer infra not built. |
+| IAM-N08/N05 Observability | 🟡 | Prometheus metrics + OTel + `/health/metrics`; **no Grafana/Loki/SLO dashboards/contract tests**. |
 | IAM-N01/N07/N12/N14 HA/DR | ❌ | One k8s manifest; no replication/backups/load-test. |
 | IAM-N10/N11 Residency/DPIA | ❌ | No inventory endpoints or sign-off. |
 
-**The single biggest gap:** `iam-1.0` (Keycloak) ran **8 scheduled Celery Beat jobs**; this repo
-schedules **only 1** (`expire_invitations`). Several SRS SLAs (delegation auto-expiry, daily audit
-anchor, leaver finalize, secret rotation, access-review revocation) depend on jobs that are either
-written-but-unscheduled or not written. See the per-epic detail and the **Scheduled jobs gap** table
-at the end.
+**Resolved since 2026-06-25:** the scheduled-jobs gap is closed — `iam-1.0` ran 8 beat jobs; this
+repo now schedules **16** (all register cleanly), with daily jobs on fixed-time `crontab` schedules.
+Recovery codes, admin dashboard, RBAC matrix, Actions V2 claims, claim-schema publish, and
+`check_zitadel_drift` have all landed. **Remaining real gaps:** Terraform IaC (F01), HRMS admin
+surface (F06), the Grafana/Loki/SLO/contract-test half of observability (N08/N05), PAM heavy infra
+(F05), and HA/DR/residency (N01/N10).
 
 ---
 
@@ -94,7 +95,7 @@ SMS-OTP via System 21; 10 recovery codes; 5-fail/5-min lockout.
 |---|---|---|---|
 | MFA-1 | Force TOTP for staff/board/nbec via login policy | ✅ | `scripts/configure_mfa.py`; `login-app` TOTP via Session API `totp`. |
 | MFA-2 | WebAuthn/passkeys for DG/Registrar/IAM-Admin | ✅ | `login-app/src/lib/webauthn.ts` → Session API `webAuthN`. |
-| MFA-5 | 10 single-use recovery codes on enrolment | ❌ ⬅️ | **Missing.** `iam-1.0` had `me/recovery-codes` + `recovery-code-verify`. |
+| MFA-5 | 10 single-use recovery codes on enrolment | ✅ | `accounts/recovery.py` (hashed + masked), `RecoveryCode` model, routed `v1/me/recovery-codes` + `/verify`. |
 | MFA-6 | Lockout 5/5 min → 15-min cooldown | 🟡 | Zitadel lockout policy; confirm values configured. |
 
 ---
@@ -109,7 +110,7 @@ quarterly access-review, default least-privilege role.
 | RBAC-2 | `RoleAssignmentRequest` DG-approval workflow | ✅ | `console` `role-bindings/{approve,reject}` queue. |
 | RBAC-3 | SoD mutually-exclusive pairs via `RuleDefinition` | ✅ | `rbac/models.py` `RuleDefinition` + `rbac/services.py`. |
 | RBAC-8 | Default least-privilege role per `user_type` on creation | 🟡 | Confirm default-role assignment on user create. |
-| RBAC-4 | Quarterly access-review + revocation-SLA sweeper | 🟡 ⬅️ | Campaigns/items/decide/export **done**; **scheduled `execute_overdue_access_review_revocations` missing**. |
+| RBAC-4 | Quarterly access-review + revocation-SLA sweeper | ✅ | Campaigns/items/decide/export + scheduled `execute_overdue_access_review_revocations` (04:00). |
 
 ---
 
@@ -129,11 +130,10 @@ quarterly access-review, default least-privilege role.
 
 | Key | Summary (Zitadel) | Status | Evidence / gap |
 |---|---|---|---|
-| CLM-1 | Inject claims via Actions V2 + project-roles claim | 🟡 | Project-roles claim works; **no Actions V2 `complementToken` target**. |
+| CLM-1 | Inject claims via Actions V2 + project-roles claim | ✅ | `oidc_rp/actions_v2.py:complement_token` routed at `/api/actions/complement-token`; `scripts/configure_actions_v2.py` binds `preaccesstoken`. |
 | CLM-2 | Per-client audience via project-aud scope | 🟡 | Confirm aud scope set per client (needed for introspection). |
-| CLM-3 | Publish IAM claim JSON Schema at `/.well-known/...` | ❌ | Not present. |
-| CLM-4 | Per-client claim filtering | ❌ | Not present. |
-| — | Token-claims report / sync tooling | ❌ ⬅️ | `iam-1.0` had `token-claims-report` + `sync/configure_token_claims`. |
+| CLM-3 | Publish IAM claim JSON Schema at `/.well-known/...` | ✅ | `oidc_rp/claims_schema.py` routed at `.well-known/iam-claims-schema.json`. |
+| CLM-4 | Per-client claim filtering | 🟡 | Partial — verify only granted scopes/roles are emitted per client. |
 
 ---
 
@@ -143,9 +143,9 @@ signed export, OIDC client management. *(Django `console/`.)*
 
 | Key | Summary (Zitadel) | Status | Evidence / gap |
 |---|---|---|---|
-| — | Admin dashboard KPI endpoint | ❌ ⬅️ | **Missing.** `iam-1.0` had `admin/dashboard`. |
+| — | Admin dashboard KPI endpoint | ✅ | `console/views/dashboard.py` routed `v1/admin/dashboard`. |
 | — | User list with filters (`user_type`/status/role/org) | ✅ | `console/views/users.py` `users_list`. |
-| — | RBAC matrix viewer endpoint | ❌ ⬅️ | **Missing.** `iam-1.0` had `admin/rbac/matrix`. |
+| — | RBAC matrix viewer endpoint | ✅ | `console/views/rbac_matrix.py` routed `v1/admin/rbac/matrix`. |
 | — | Bulk CSV/Excel import w/ row-level errors | ✅ | `users/bulk-import`. |
 | — | Audit search + signed export | ✅ | `audit/{search,verify,export}`. |
 | Cross | Remove AMS `seed_superadmin` duplicate user | ❌ | Cross-service cleanup. |
@@ -159,9 +159,9 @@ signed export, OIDC client management. *(Django `console/`.)*
 | Key | Summary (Zitadel) | Status | Evidence / gap |
 |---|---|---|---|
 | LCM-1 | SCIM listener + HMAC verification | ✅ | `scim/v2/Users*`, `lifecycle/hrms-webhook`. |
-| LCM-2/5 | Joiner activate pre-provisioned user at `start_date` ≤ 1 h | 🟡 ⬅️ | `_process_joiner` on event; **scheduled `activate_pre_active_accounts` missing**. |
+| LCM-2/5 | Joiner activate pre-provisioned user at `start_date` ≤ 1 h | ✅ | `_process_joiner` + scheduled `activate_pre_active_accounts` (hourly). |
 | LCM-3 | Mover: update metadata + reassign roles ≤ 1 h | ✅ | `_process_mover`. |
-| LCM-4 | Leaver: disable ≤ 60 s, deactivate ≤ 4 h | 🟡 ⬅️ | `_process_leaver` immediate; **scheduled `finalize_leaver_disable` missing**. |
+| LCM-4 | Leaver: disable ≤ 60 s, deactivate ≤ 4 h | ✅ | `_process_leaver` immediate + scheduled `finalize_leaver_disable` (hourly). |
 | LCM-6 | Audit all SCIM events | ✅ | Audit emit on lifecycle. |
 | — | `hrms-stub` mgmt command | ❌ | Only `seed_iam`, `setup_systems` commands exist. |
 | — | HRMS-events admin + replay + move-conflict resolve | ❌ ⬅️ | `iam-1.0` had `admin/hrms-events*`, `move-conflicts*`. |
@@ -174,8 +174,8 @@ signed export, OIDC client management. *(Django `console/`.)*
 | Key | Summary (Zitadel) | Status | Evidence / gap |
 |---|---|---|---|
 | F01-7 | App lifecycle transitions | ✅ | `clients/{promote,suspend,activate}`. |
-| F01-4 | `rotate_due_clients`: 180-day auto-rotation | 🟡 ⬅️ | Only **manual** `rotate-secret` endpoint; **no scheduled `rotate_due_client_secrets`**. |
-| — | `check_zitadel_drift` nightly CI job | ❌ ⬅️ | `iam-1.0` had `check_keycloak_drift` + `admin/drift`. |
+| F01-4 | `rotate_due_clients`: 180-day auto-rotation | ✅ | `clients/tasks.py:rotate_due_client_secrets` scheduled (03:30) + manual endpoint. |
+| — | `check_zitadel_drift` nightly CI job | ✅ | `clients/management/commands/check_zitadel_drift.py` (diffs Zitadel vs Django, non-zero exit, `--fix`). |
 | — | OIDC clients admin list / status | ✅ | `console/views/clients.py`. |
 
 ---
@@ -188,8 +188,8 @@ signed export, OIDC client management. *(Django `console/`.)*
 | AUD-1/2 | `hash_chain_ref` + `channel` columns | ✅ | `audit/models.py`. |
 | — | Per-event SHA-256 chaining + verify | ✅ | `audit/chain.py` (`anchor_event` at emit, `verify_chain`). |
 | AUD-3/4 | Actions V2 webhook routes Zitadel events into audit | 🟡 | Django-side emit works; **no Zitadel Actions V2 target** for native auth events. |
-| AUD-3 | `anchor_chain_daily`: daily root → System 22 | ❌ ⬅️ | Per-event anchor only; **no daily-root task, not scheduled**. |
-| — | `forward_outbox` to System 22 | 🟡 | Task exists but **not registered/scheduled** (in `forwarder.py`, not `tasks.py`). |
+| AUD-3 | `anchor_chain_daily`: daily root → System 22 | ✅ | `audit/tasks.py:anchor_chain_daily` emits daily root + runs `verify_chain`, scheduled 02:00. |
+| — | `forward_outbox` to System 22 | ✅ | Registered via `audit/tasks.py`, scheduled every 5 min (no-ops until `SYSTEM_22_AUDIT_URL` set). |
 | AUD-4 | 10-year retention, no purge | ✅ | `AUDIT_RETENTION_YEARS = 10`. |
 
 ---
@@ -201,7 +201,7 @@ signed export, OIDC client management. *(Django `console/`.)*
 |---|---|---|---|
 | SS-1/3 | Self-registration + email verification | 🟡 | `login/register` + `verify` via login-app/Zitadel. |
 | SS-2 | Disable self-registration for staff | 🟡 | Via Zitadel org registration policy; confirm. |
-| SS-4/5 | Per-IP/per-email rate limits | 🟡 | Generic `RATE_LIMIT_PATHS` for login/reset; **no `purge_unverified_registrations`** ⬅️. |
+| SS-4/5 | Per-IP/per-email rate limits | 🟡 | `RATE_LIMIT_PATHS` + scheduled `purge_unverified_registrations` (03:00); per-email limit still thin. |
 | SS-6 | Disposable-domain block-list | ❌ | Not present. |
 
 ---
@@ -226,8 +226,8 @@ signed export, OIDC client management. *(Django `console/`.)*
 | Key | Summary (Zitadel) | Status | Evidence / gap |
 |---|---|---|---|
 | DEL-1/2 | `Delegation` model + HMAC webhook | ✅ | `delegation/models.py`, `delegation/webhook`. |
-| DEL-3 | `expire_due_delegations` auto-expiry | 🟡 ⬅️ | `expire_delegations` task **exists but not scheduled**. |
-| DEL-4 | DG notification 24 h before expiry | ❌ ⬅️ | **Not written.** `iam-1.0` had `notify_dg_24h_before_expiry`. |
+| DEL-3 | `expire_due_delegations` auto-expiry | ✅ | `delegation.tasks.expire_delegations` scheduled (60 s). |
+| DEL-4 | DG notification 24 h before expiry | ✅ | `delegation.tasks.notify_dg_24h_before_expiry` scheduled (hourly). |
 | DEL-5 | Audit delegation events | ✅ | Audit emit with delegation channel. |
 
 ---
@@ -239,7 +239,7 @@ signed export, OIDC client management. *(Django `console/`.)*
 |---|---|---|---|
 | PAM-1/3 | Vault dynamic creds + JumpServer | ❌ | Not built. |
 | PAM-4 | JumpServer uses Zitadel OIDC only | ❌ | Not built. |
-| PAM-2/5 | Recording SHA-256 anchored daily | ❌ | Not built. |
+| PAM-2/5 | Recording SHA-256 anchored daily | 🟡 | `pam.tasks.anchor_recording_hashes_daily` scheduled (02:30); depends on real recordings. |
 | PAM-6 | Revoke leases + kill sessions on leaver ≤ 60 s | ❌ | Not built. |
 | PAM-7 | Auditor read-only PAM access | ❌ | Not built. |
 | — | Session start/end skeleton | 🟡 | `pam/sessions`, `pam/sessions/{id}/end` exist as stubs. |
@@ -251,8 +251,8 @@ signed export, OIDC client management. *(Django `console/`.)*
 
 | Key | Summary (Zitadel) | Status | Evidence / gap |
 |---|---|---|---|
-| — | Prometheus + Grafana + Loki | ❌ | No metrics/observability anywhere. |
-| — | OpenTelemetry tracing | ❌ | Not present. |
+| — | Prometheus + Grafana + Loki | 🟡 | `core/metrics.py` (Counter/Gauge/Histogram) + `/health/metrics`; **Grafana/Loki stack not deployed**. |
+| — | OpenTelemetry tracing | ✅ | `core/otel.py`, feature-flagged via `OTEL_ENABLED`. |
 | — | SLO dashboards | ❌ | Not present. |
 | — | `zitadel_token_size_bytes` metric + CI gate | ❌ | Not present. |
 | — | Schemathesis contract tests (OpenAPI 3.1) | ❌ | `drf-spectacular` schema served; no contract tests. |
@@ -282,27 +282,31 @@ signed export, OIDC client management. *(Django `console/`.)*
 
 ---
 
-## Scheduled jobs gap (Celery Beat) — the highest-impact backlog
+## Scheduled jobs (Celery Beat) — RESOLVED (2026-06-26)
 
-`iam-1.0` ran 8 beat jobs; this repo schedules only `expire_invitations`. Status of the rest:
+`iam-1.0` ran 8 beat jobs; this repo now schedules **16**, all registering cleanly. Daily jobs use
+fixed-time `crontab` (Africa/Accra) so they run off-peak and survive restarts predictably.
 
-| Job (SRS) | Task in `iam/` | Scheduled? | Action needed |
-|---|---|---|---|
-| `expire_due_delegations` (F04) | `delegation.tasks.expire_delegations` ✅ exists | ❌ | **Add beat entry (~60 s).** |
-| audit `forward_outbox` (N04) | `audit.forwarder.forward_outbox` ✅ exists | ❌ | Make discoverable + **add beat entry (~5 min).** |
-| `anchor_chain_daily` (N04) | ❌ not written (only per-event `anchor_event`) | ❌ | Write daily-root task + schedule. |
-| `activate_pre_active_accounts` (F06) | ❌ not written | ❌ | Write + schedule. |
-| `finalize_leaver_disable` (F06) | ❌ not written | ❌ | Write + schedule. |
-| `purge_unverified_registrations` (F08) | ❌ not written | ❌ | Write + schedule. |
-| `rotate_due_client_secrets` (F11) | ❌ not written (manual endpoint only) | ❌ | Write + schedule. |
-| `execute_overdue_access_review_revocations` (F03) | ❌ not written | ❌ | Write + schedule. |
+| Job (SRS) | Task | Schedule |
+|---|---|---|
+| `expire_due_delegations` (F04) | `delegation.tasks.expire_delegations` | 60 s |
+| audit `forward_outbox` (N04) | `audit.forwarder.forward_outbox` | 5 min |
+| `anchor_chain_daily` (N04) | `audit.tasks.anchor_chain_daily` | 02:00 |
+| `activate_pre_active_accounts` (F06) | `lifecycle.tasks.activate_pre_active_accounts` | hourly |
+| `finalize_leaver_disable` (F06) | `lifecycle.tasks.finalize_leaver_disable` | hourly |
+| `purge_unverified_registrations` (F08) | `lifecycle.tasks.purge_unverified_registrations` | 03:00 |
+| `rotate_due_client_secrets` (F11) | `clients.tasks.rotate_due_client_secrets` | 03:30 |
+| `execute_overdue_access_review_revocations` (F03) | `rbac.tasks.execute_overdue_access_review_revocations` | 04:00 |
+| `notify_dg_24h_before_expiry` (F04) | `delegation.tasks.notify_dg_24h_before_expiry` | hourly |
+| `anchor_recording_hashes_daily` (F05) | `pam.tasks.anchor_recording_hashes_daily` | 02:30 |
+| + invitation expiry, auth/session/PAM cleanup, DB/PAM metrics | — | various |
 
 ---
 
 ## Open items / deviations introduced by the Zitadel substrate
 
-1. **Recovery codes (MFA-5).** Not implemented; was present in `iam-1.0`. Decide: native Zitadel
-   mechanism vs Admin-Console-mediated reset. Record a deviation either way.
+1. ~~**Recovery codes (MFA-5).**~~ ✅ Resolved — implemented in `accounts/recovery.py` (hashed +
+   masked) with `RecoveryCode` model and `v1/me/recovery-codes` routes.
 2. **ROPC sunset (F01-1) is trivial** — Zitadel has no Resource Owner Password grant.
 3. **Event Listener SPI → Actions V2 webhooks (AUD-3/4).** Native Zitadel auth events are not yet
    captured via an Actions V2 target — only Django-side emit. Confirm coverage.

@@ -2,7 +2,7 @@ import pytest
 
 from accounts.models import User
 from clients.models import OIDCClient
-from rbac.models import AccessReviewCampaign, AccessReviewItem, Role, RoleBinding
+from rbac.models import AccessReviewCampaign, Role, RoleBinding
 
 pytestmark = pytest.mark.django_db
 

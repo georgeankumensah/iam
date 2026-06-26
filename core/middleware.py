@@ -50,6 +50,22 @@ class CorrelationIdMiddleware:
         return response
 
 
+class MetricsMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        start = time.monotonic()
+        response = self.get_response(request)
+        latency = time.monotonic() - start
+        endpoint = request.resolver_match.view_name if request.resolver_match else request.path
+        from .metrics import request_count, request_latency_seconds
+
+        request_count.labels(method=request.method, endpoint=endpoint, status=response.status_code).inc()
+        request_latency_seconds.labels(method=request.method, endpoint=endpoint).observe(latency)
+        return response
+
+
 class SecurityHeadersMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response

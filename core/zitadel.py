@@ -360,6 +360,58 @@ class ZitadelService:
             if e.status not in (404, 400):
                 raise
 
+    # -- Actions V2 ---------------------------------------------------------
+
+    def create_actions_target(self, name: str, endpoint: str,
+                              timeout: str = "10s",
+                              target_type: str = "restCall",
+                              interrupt_on_error: bool = True) -> dict:
+        target_body: dict = {
+            "name": name,
+            "endpoint": endpoint,
+            "timeout": timeout,
+        }
+        if target_type == "restCall":
+            target_body["restCall"] = {"interruptOnError": interrupt_on_error}
+        elif target_type == "restWebhook":
+            target_body["restWebhook"] = {"interruptOnError": interrupt_on_error}
+        else:
+            target_body["restAsync"] = {"interruptOnError": interrupt_on_error}
+
+        return self.request("POST", "/v2/actions/targets", target_body)
+
+    def delete_actions_target(self, target_id: str) -> None:
+        try:
+            self.request("DELETE", f"/v2/actions/targets/{target_id}")
+        except ZitadelError as e:
+            if e.status != 404:
+                raise
+
+    def set_actions_execution(self, condition_method: str,
+                              target_ids: list[str]) -> dict:
+        """Set an Actions V2 execution for the given function condition.
+
+        ``condition_method`` is a Zitadel function (e.g. ``preaccesstoken``)
+        or gRPC method path.  ``target_ids`` are the target IDs to invoke.
+        """
+        return self.request(
+            "PUT", "/v2/actions/executions",
+            {
+                "condition": {"function": condition_method},
+                "targets": target_ids,
+            },
+        )
+
+    def delete_actions_execution(self, condition_method: str) -> None:
+        try:
+            self.request(
+                "DELETE", "/v2/actions/executions",
+                {"condition": {"function": condition_method}},
+            )
+        except ZitadelError as e:
+            if e.status != 404:
+                raise
+
 
 _service: ZitadelService | None = None
 

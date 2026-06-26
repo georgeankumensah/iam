@@ -1,7 +1,10 @@
-import json, os, sys, time, base64, sys
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-import jwt, requests
+import base64
+import json
+import sys
+from datetime import UTC, datetime, timedelta
+
+import jwt
+import requests
 from cryptography.hazmat.primitives import serialization
 
 ZITADEL_HOST = "http://zitadel:8080"
@@ -29,7 +32,7 @@ with open(MACHINE_KEY_PATH) as f:
     key_data = json.load(f)
 
 private_key = serialization.load_pem_private_key(key_data["key"].encode(), password=None)
-now = datetime.now(timezone.utc)
+now = datetime.now(UTC)
 payload = {
     "iss": key_data["userId"],
     "sub": key_data["userId"],
@@ -93,7 +96,7 @@ print(f"iam-backend user ID: {sa_user_id}")
 
 resp = session().post(
     f"{ZITADEL_HOST}/management/v1/users/{sa_user_id}/keys",
-    json={"type": "KEY_TYPE_JSON", "expirationDate": (datetime.now(timezone.utc) + timedelta(days=365)).isoformat()},
+    json={"type": "KEY_TYPE_JSON", "expirationDate": (datetime.now(UTC) + timedelta(days=365)).isoformat()},
     headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
     timeout=15,
 )

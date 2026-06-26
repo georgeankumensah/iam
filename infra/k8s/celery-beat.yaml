@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iam-celery-beat
+  namespace: iam-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iam-celery-beat
+  template:
+    metadata:
+      labels:
+        app: iam-celery-beat
+    spec:
+      containers:
+        - name: beat
+          image: clet/iam-django:latest
+          command: ["celery", "-A", "config.celery_app", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "config.settings.prod"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: iam-db
+                  key: host
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: iam-db
+                  key: password
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iam-redis
+                  key: url
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

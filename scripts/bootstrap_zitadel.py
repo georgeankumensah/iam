@@ -19,7 +19,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import jwt
@@ -100,7 +100,7 @@ def get_access_token(key_data: dict) -> str:
         key_data["key"].encode(), password=None
     )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "iss": key_data["userId"],
         "sub": key_data["userId"],
@@ -241,7 +241,7 @@ def create_service_account(token: str, org_id: str) -> str:
         f"{ISSUER}/management/v1/users/{user_id}/keys",
         json={
             "type": "KEY_TYPE_JSON",
-            "expirationDate": (datetime.now(timezone.utc) + timedelta(days=365)).isoformat(),
+            "expirationDate": (datetime.now(UTC) + timedelta(days=365)).isoformat(),
         },
         headers={
             "Authorization": f"Bearer {token}",

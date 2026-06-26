@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from celery.schedules import crontab
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "insecure-dev-key-change-in-prod")
@@ -45,6 +47,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.RateLimitMiddleware",
     "core.middleware.CorrelationIdMiddleware",
+    "core.middleware.MetricsMiddleware",
     "core.middleware.SecurityHeadersMiddleware",
 ]
 
@@ -151,15 +154,67 @@ CELERY_TIMEZONE = "Africa/Accra"
 CELERY_BEAT_SCHEDULE: dict[str, object] = {
     "expire-invitations": {
         "task": "accounts.tasks.expire_invitations",
-        "schedule": 3600.0,  # hourly
+        "schedule": 3600.0,
     },
     "expire-delegations": {
         "task": "delegation.tasks.expire_delegations",
-        "schedule": 60.0,  # per-minute: SRS-IAM-F04 auto-expire at end_at
+        "schedule": 60.0,
     },
     "forward-audit-outbox": {
         "task": "audit.forwarder.forward_outbox",
-        "schedule": 300.0,  # every 5 min: SRS-IAM-N04 forward chain events to System 22
+        "schedule": 300.0,
+    },
+    "anchor-chain-daily": {
+        "task": "audit.tasks.anchor_chain_daily",
+        "schedule": crontab(hour=2, minute=0),  # 02:00 Africa/Accra
+    },
+    "activate-pre-active-accounts": {
+        "task": "lifecycle.tasks.activate_pre_active_accounts",
+        "schedule": 3600.0,
+    },
+    "finalize-leaver-disable": {
+        "task": "lifecycle.tasks.finalize_leaver_disable",
+        "schedule": 3600.0,
+    },
+    "purge-unverified-registrations": {
+        "task": "lifecycle.tasks.purge_unverified_registrations",
+        "schedule": crontab(hour=3, minute=0),  # 03:00 Africa/Accra
+    },
+    "rotate-due-client-secrets": {
+        "task": "clients.tasks.rotate_due_client_secrets",
+        "schedule": crontab(hour=3, minute=30),  # 03:30 Africa/Accra
+    },
+    "execute-overdue-access-review-revocations": {
+        "task": "rbac.tasks.execute_overdue_access_review_revocations",
+        "schedule": crontab(hour=4, minute=0),  # 04:00 Africa/Accra
+    },
+    "notify-dg-24h-before-expiry": {
+        "task": "delegation.tasks.notify_dg_24h_before_expiry",
+        "schedule": 3600.0,
+    },
+    "cleanup-expired-auth-sessions": {
+        "task": "api.auth.tasks.cleanup_expired_auth_sessions",
+        "schedule": 3600.0,
+    },
+    "anchor-pam-recording-hashes": {
+        "task": "pam.tasks.anchor_recording_hashes_daily",
+        "schedule": crontab(hour=2, minute=30),  # 02:30 Africa/Accra
+    },
+    "cleanup-stale-pam-sessions": {
+        "task": "pam.tasks.cleanup_stale_pam_sessions",
+        "schedule": 3600.0,
+    },
+    "cleanup-expired-active-sessions": {
+        "task": "audit.tasks.cleanup_expired_active_sessions",
+        "schedule": 3600.0,
+    },
+    "collect-db-connection-metrics": {
+        "task": "core.tasks.collect_db_connection_metrics",
+        "schedule": 60.0,
+    },
+    "collect-pam-session-metrics": {
+        "task": "core.tasks.collect_pam_session_metrics",
+        "schedule": 60.0,
     },
 }
 
@@ -196,7 +251,13 @@ LOGOUT_REDIRECT_URL = "/"
 
 RATE_LIMIT_WINDOW = 60
 RATE_LIMIT_MAX_ATTEMPTS = 20
-RATE_LIMIT_PATHS = ["/login/", "/password-reset/"]
+RATE_LIMIT_PATHS = ["/login/", "/password-reset/", "/register/"]
+
+DISPOSABLE_DOMAIN_LIST_PATH = os.environ.get("DISPOSABLE_DOMAIN_LIST_PATH", "")
+
+# HMAC signing key for Zitadel Actions V2 complementToken target.
+# Set after running scripts/configure_actions_v2.py.
+ZITADEL_ACTIONS_SIGNING_KEY = os.environ.get("ZITADEL_ACTIONS_SIGNING_KEY", "")
 
 BOOTSTRAP_ADMIN_EMAIL = os.environ.get("BOOTSTRAP_ADMIN_EMAIL", "admin@clet.gov.gh")
 BOOTSTRAP_ZITADEL_ADMIN_EMAIL = os.environ.get("BOOTSTRAP_ZITADEL_ADMIN_EMAIL", "admin@zitadel.localhost")
@@ -209,6 +270,10 @@ SCIM_BEARER_TOKEN = os.environ.get("SCIM_BEARER_TOKEN", "")
 
 SYSTEM_22_AUDIT_URL = os.environ.get("SYSTEM_22_AUDIT_URL", "")
 
+OTEL_ENABLED = os.environ.get("OTEL_ENABLED", "false").lower() == "true"
+
 PAM_RECORDING_RETENTION_YEARS = 7
 PAM_VAULT_ADDR = os.environ.get("PAM_VAULT_ADDR", "")
 PAM_VAULT_TOKEN = os.environ.get("PAM_VAULT_TOKEN", "")
+PAM_JUMPSERVER_API_URL = os.environ.get("PAM_JUMPSERVER_API_URL", "")
+PAM_JUMPSERVER_API_TOKEN = os.environ.get("PAM_JUMPSERVER_API_TOKEN", "")

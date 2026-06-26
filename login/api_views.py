@@ -4,12 +4,64 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from accounts.domain_block import is_disposable_domain
+
 from .risk import login_risk_scorer
 from .zitadel_auth import MFA_FACTOR_SMS, MFA_FACTOR_TOTP, MFA_FACTOR_WEBAUTHN, ZitadelAuthService
 
 logger = logging.getLogger("iam.login.api")
 
 auth_service = ZitadelAuthService()
+
+
+@api_view(["POST"])
+def register(request):
+    email = request.data.get("email", "").strip().lower()
+    if not email:
+        return Response(
+            {"error": "missing_email", "error_description": "Email is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if is_disposable_domain(email):
+        return Response(
+            {"error": "disposable_domain", "error_description": "Disposable email domains are not allowed"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from accounts.models import User
+
+    if User.objects.filter(email=email).exists():
+        return Response(
+            {"error": "email_exists", "error_description": "An account with this email already exists"},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    user_type = request.data.get("user_type", "public")
+    if user_type not in ("student", "external", "public"):
+        user_type = "public"
+
+    user = User.objects.create(
+        email=email,
+        user_type=user_type,
+        status=User.UserStatus.PENDING,
+    )
+
+    from core.zitadel import zitadel
+
+    try:
+        zitadel_user_id = zitadel().create_human_user(email, email.split("@")[0], "")
+        user.zitadel_user_id = zitadel_user_id
+        user.save(update_fields=["zitadel_user_id"])
+    except Exception as e:
+        logger.error("Failed to create Zitadel user for %s: %s", email, e)
+        user.delete()
+        return Response(
+            {"error": "provisioning_failed", "error_description": "Could not create account"},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response({"email": email, "status": "pending"}, status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])

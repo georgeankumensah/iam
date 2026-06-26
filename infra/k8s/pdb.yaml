@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: iam-django
+  namespace: iam-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: iam-django
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: iam-celery-worker
+  namespace: iam-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: iam-celery-worker

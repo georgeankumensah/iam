@@ -1,10 +1,6 @@
 from django.urls import path
-from .views import (
-    auth_status,
-    create_auth_session,
-    revoke_auth_session,
-    sync_auth_state
-)
+
+from .views import auth_status, create_auth_session, revoke_auth_session, sync_auth_state
 
 urlpatterns = [
     path("status", auth_status, name="auth-status"),

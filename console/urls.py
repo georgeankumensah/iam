@@ -1,6 +1,16 @@
 from django.urls import path
 
-from .views import access_reviews, audit, clients, delegations, roles, systems, users
+from .views import (
+    access_reviews,
+    audit,
+    clients,
+    dashboard,
+    delegations,
+    rbac_matrix,
+    roles,
+    systems,
+    users,
+)
 
 urlpatterns = [
     path("users", users.users_list, name="admin_users"),
@@ -30,6 +40,8 @@ urlpatterns = [
     path("access-reviews/<uuid:campaign_id>/complete", access_reviews.campaign_complete, name="admin_access_review_complete"),
     path("access-reviews/<uuid:campaign_id>/export", access_reviews.campaign_export, name="admin_access_review_export"),
     path("access-review-items/<uuid:item_id>/decide", access_reviews.item_decide, name="admin_access_review_decide"),
+    path("dashboard", dashboard.admin_dashboard, name="admin_dashboard"),
+    path("rbac/matrix", rbac_matrix.rbac_matrix, name="admin_rbac_matrix"),
     path("delegations", delegations.delegations_list, name="admin_delegations"),
     path("delegations/<uuid:delegation_id>/revoke", delegations.delegation_revoke, name="admin_delegation_revoke"),
     path("audit", audit.audit_search, name="admin_audit"),

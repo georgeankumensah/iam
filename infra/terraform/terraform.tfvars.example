@@ -1,0 +1,7 @@
+zitadel_domain          = "iam.clet.gov.gh"
+zitadel_admin_token     = "<pat-or-service-account-token>"
+zitadel_actions_signing_key = "generate-a-256-bit-base64-key"
+
+iam_admin_members = [
+  { user_id = "123456789012345678" },  # replace with real Zitadel user IDs
+]
