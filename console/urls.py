@@ -7,6 +7,7 @@ from .views import (
     dashboard,
     delegations,
     hrms,
+    invitations,
     rbac_matrix,
     roles,
     systems,
@@ -18,6 +19,7 @@ urlpatterns = [
     path("users/bulk-import", users.users_bulk_import, name="admin_users_bulk"),
     path("users/<uuid:user_id>", users.users_detail, name="admin_user_detail"),
     path("users/<uuid:user_id>/roles", users.user_roles, name="admin_user_roles"),
+    path("users/<uuid:user_id>/reactivate", users.users_reactivate, name="admin_user_reactivate"),
     path("roles", roles.roles_list, name="admin_roles"),
     path("roles/<uuid:role_id>", roles.role_detail, name="admin_role_detail"),
     path("roles/<uuid:role_id>/bind", roles.role_bind, name="admin_role_bind"),
@@ -53,4 +55,6 @@ urlpatterns = [
     path("audit/verify", audit.audit_verify, name="admin_audit_verify"),
     path("audit/export", audit.audit_export, name="admin_audit_export"),
     path("residency/", include("compliance.urls")),
+    path("invitations", invitations.admin_invitations_collection, name="admin_invitations"),
+    path("invitations/<uuid:invite_id>/resend", invitations.admin_invitation_resend, name="admin_invitation_resend"),
 ]

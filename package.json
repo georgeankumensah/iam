@@ -4,6 +4,7 @@
   "workspaces": [
     "ams-app",
     "nbes-app",
+    "admin-dashboard",
     "packages/oidc-client"
   ],
   "devDependencies": {

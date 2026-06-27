@@ -283,3 +283,38 @@ def internal_user_reactivate(request, user_id: str):
     except Exception as e:
         logger.error("internal_user_reactivate failed: %s", e, exc_info=True)
         return Response({"error": f"internal: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def users_reactivate(request, user_id: str):
+    """Admin endpoint — reactivate a disabled user."""
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({"error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if user.status != "disabled":
+        return Response(
+            {"error": "User is not disabled"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if user.zitadel_user_id:
+        try:
+            reactivate_user_in_zitadel(str(user.zitadel_user_id))
+        except Exception as e:
+            logger.warning("ZITADEL reactivation failed for %s: %s", user.zitadel_user_id, e)
+
+    user.status = "active"
+    user.save(update_fields=["status"])
+
+    emit_event(
+        actor_user_id=str(request.user.id),
+        action="user.reactivated",
+        entity_type="user",
+        entity_id=str(user.id),
+        channel="console",
+    )
+
+    return Response({"success": True}, status=status.HTTP_200_OK)

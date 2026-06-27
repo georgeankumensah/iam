@@ -15,7 +15,7 @@ from console.onboarding import (
     resend_invitation,
     revoke_invitation,
 )
-from console.permissions import can_manage_system_invites, is_iam_admin, is_system_admin
+from console.permissions import IsIAMAdmin, can_manage_system_invites, is_iam_admin, is_system_admin
 from rbac.models import Role, RoleBinding
 from rbac.services import SoDViolation
 
@@ -333,3 +333,66 @@ def invitation_accept(request):
         return Response({"success": False, "error": "invalid_or_expired"}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response({"success": True, "data": result})
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def admin_invitations_collection(request):
+    """IAM admin list/create invitations — Bearer-token auth."""
+    if request.method == "GET":
+        qs = Invitation.objects.all().order_by("-created_at")
+        return Response({"success": True, "data": [_serialize(i) for i in qs]})
+
+    email = (request.data.get("email") or "").strip().lower()
+    system_code = (request.data.get("system_code") or "").strip()
+    role_ids = request.data.get("role_ids") or []
+    first_name = request.data.get("first_name", "")
+    last_name = request.data.get("last_name", "")
+
+    if not email or not system_code or not role_ids:
+        return Response(
+            {"success": False, "error": "email, system_code and role_ids are required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        inv, code, lookup_token = invite_user(
+            email=email,
+            system_code=system_code,
+            role_ids=role_ids,
+            invited_by=request.user,
+            return_code=bool(request.data.get("return_code", True)),
+            first_name=first_name,
+            last_name=last_name,
+        )
+    except SoDViolation as e:
+        return Response(
+            {"success": False, "error": "ROLE_CONFLICT", "message": str(e)},
+            status=status.HTTP_409_CONFLICT,
+        )
+    except OnboardingError as e:
+        return Response({"success": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    data = _serialize(inv)
+    if code:
+        data["invite_code"] = code
+    data["lookup_token"] = lookup_token
+    return Response({"success": True, "data": data}, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsIAMAdmin])
+def admin_invitation_resend(request, invite_id: str):
+    """IAM admin resend invitation — Bearer-token auth."""
+    try:
+        inv = Invitation.objects.get(id=invite_id)
+    except Invitation.DoesNotExist:
+        return Response({"success": False, "error": "not_found"}, status=status.HTTP_404_NOT_FOUND)
+
+    code, lookup_token = resend_invitation(inv, return_code=True)
+    inv.refresh_from_db()
+    data = _serialize(inv)
+    if code:
+        data["invite_code"] = code
+    data["lookup_token"] = lookup_token
+    return Response({"success": True, "data": data})

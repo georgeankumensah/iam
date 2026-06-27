@@ -20,7 +20,7 @@ def _fetch_jwks() -> list[dict[str, Any]]:
 
 def verify_jwt_token(
     token: str,
-    audience: str | None = None,
+    audience: list[str] | None = None,
     issuer: str | None = None,
 ) -> dict[str, Any]:
     """Verify a JWT from ZITADEL using the JWKS endpoint.
@@ -45,7 +45,7 @@ def verify_jwt_token(
         token,
         public_key,
         algorithms=["RS256"],
-        audience=[audience or settings.OIDC_RP_CLIENT_ID],
+        audience=audience or settings.OIDC_ALLOWED_AUDIENCES,
         issuer=issuer or settings.ZITADEL_HOST,
         options={"verify_exp": True, "verify_at_hash": False},
     )

@@ -6,7 +6,7 @@ export interface UseAuthResult {
   is_loading: boolean;
   error: Error | null;
   login: (extra_params?: Record<string, string>) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (extra_query_params?: Record<string, string>) => Promise<void>;
   get_access_token: () => Promise<string | undefined>;
 }
 
@@ -21,14 +21,14 @@ export function useAuth(): UseAuthResult {
     login: async (extra_params) => {
       await oidc.signinRedirect({ extraQueryParams: extra_params });
     },
-    logout: async () => {
+    logout: async (extra_query_params) => {
       try {
         await oidc.revokeTokens();
       } catch {
         // Best-effort token revocation
       }
       try {
-        await oidc.signoutRedirect();
+        await oidc.signoutRedirect({ extraQueryParams: extra_query_params });
       } catch {
         // ZITADEL session may already be dead (e.g. logged out from another
         // app). Clear local state instead of showing an error redirect.

@@ -128,6 +128,14 @@ variable "oidc_applications" {
       redirect_uris         = ["http://localhost:8000/auth/callback"]
       post_logout_uris      = ["http://localhost:8000/auth/logout"]
     }
+    "admin-dashboard" = {
+      project_key           = "gov"
+      display_name          = "Admin Dashboard"
+      access_type           = "PKCE"
+      redirect_uris         = ["http://localhost:3001/auth/callback"]
+      post_logout_uris      = ["http://localhost:3001/logout"]
+      additional_origins    = ["http://localhost:3001"]
+    }
   }
 }
 

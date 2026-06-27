@@ -240,6 +240,11 @@ INVITATION_TTL_HOURS = int(os.environ.get("INVITATION_TTL_HOURS", "168"))
 
 OIDC_RP_CLIENT_ID = os.environ.get("OIDC_RP_CLIENT_ID", "")
 OIDC_RP_CLIENT_SECRET = os.environ.get("OIDC_RP_CLIENT_SECRET", "")
+OIDC_ALLOWED_AUDIENCES = [
+    x.strip()
+    for x in os.environ.get("OIDC_ALLOWED_AUDIENCES", OIDC_RP_CLIENT_ID).split(",")
+    if x.strip()
+]
 OIDC_OP_JWKS_ENDPOINT = f"{os.environ.get('ZITADEL_HOST', '')}/oauth/v2/keys"
 OIDC_OP_AUTHORIZATION_ENDPOINT = f"{os.environ.get('ZITADEL_HOST', '')}/oauth/v2/authorize"
 OIDC_OP_TOKEN_ENDPOINT = f"{os.environ.get('ZITADEL_HOST', '')}/oauth/v2/token"
