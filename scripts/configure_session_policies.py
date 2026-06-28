@@ -24,7 +24,7 @@ from cryptography.hazmat.primitives import serialization
 
 ZITADEL_HOST = os.getenv("ZITADEL_INTERNAL_HOST", os.getenv("ZITADEL_HOST", "http://zitadel:8080"))
 MACHINE_KEY_PATH = Path(os.getenv("ZITADEL_MACHINE_KEY_PATH", "/machinekey/zitadel-admin-sa.json"))
-ZITADEL_EXTERNAL_DOMAIN = "localhost:8080"
+ZITADEL_EXTERNAL_DOMAIN = os.environ.get("ZITADEL_EXTERNAL_DOMAIN", "localhost:8080")
 
 USER_TYPE_POLICIES = {
     "default": {"force_mfa": True, "session_idle_lifetime": "864000s", "session_max_lifetime": "2592000s"},

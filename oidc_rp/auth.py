@@ -46,7 +46,7 @@ def verify_jwt_token(
         public_key,
         algorithms=["RS256"],
         audience=audience or settings.OIDC_ALLOWED_AUDIENCES,
-        issuer=issuer or settings.ZITADEL_HOST,
+        issuer=issuer or settings.OIDC_OP_ISSUER,
         options={"verify_exp": True, "verify_at_hash": False},
     )
     return payload

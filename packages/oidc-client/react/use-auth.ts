@@ -36,6 +36,15 @@ export function useAuth(): UseAuthResult {
       }
     },
     get_access_token: async () => {
+      const user = oidc.user;
+      if (!user) return undefined;
+      if (user.expired) {
+        try {
+          await oidc.signinSilent();
+        } catch {
+          return undefined;
+        }
+      }
       return oidc.user?.access_token;
     },
   };

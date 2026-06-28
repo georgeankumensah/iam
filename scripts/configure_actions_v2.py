@@ -27,7 +27,7 @@ from django.conf import settings
 from core.zitadel import ZitadelError, zitadel
 
 TARGET_NAME = "iam-complement-token"
-TARGET_ENDPOINT = f"{settings.ZITADEL_HOST}/api/actions/complement-token"
+TARGET_ENDPOINT = settings.ACTIONS_TARGET_ENDPOINT
 FUNCTION_CONDITION = "preaccesstoken"
 
 

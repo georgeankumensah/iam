@@ -8,20 +8,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "missing authRequest" }, { status: 400 });
   }
 
+  const rawCookie = request.headers.get("cookie") || "";
+  const hasSessionCookie = rawCookie.includes("zitadel-session");
+
   const djangoUrl = `${DJANGO_BASE_URL}/login/complete?authRequest=${encodeURIComponent(authRequest)}`;
 
   try {
     const response = await fetch(djangoUrl, {
       headers: {
-        Cookie: request.headers.get("cookie") || "",
+        Cookie: rawCookie,
       },
       redirect: "manual",
       signal: AbortSignal.timeout(15000),
     });
 
+    const djangoLocation = response.headers.get("location") || "";
+
     if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
+      const location = djangoLocation;
       if (location) {
+        if (location.includes("/login")) {
+          console.error(
+            `[complete-auth] Django redirected to login. Browser sent zitadel-session: ${hasSessionCookie}. Raw cookie length: ${rawCookie.length}. Django status: ${response.status}. Location: ${location}`,
+          );
+        }
         return NextResponse.redirect(location);
       }
     }

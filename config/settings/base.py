@@ -240,6 +240,7 @@ INVITATION_TTL_HOURS = int(os.environ.get("INVITATION_TTL_HOURS", "168"))
 
 OIDC_RP_CLIENT_ID = os.environ.get("OIDC_RP_CLIENT_ID", "")
 OIDC_RP_CLIENT_SECRET = os.environ.get("OIDC_RP_CLIENT_SECRET", "")
+OIDC_OP_ISSUER = os.environ.get("OIDC_OP_ISSUER", f"http://{os.environ.get('ZITADEL_EXTERNAL_DOMAIN', 'localhost:8080')}")
 OIDC_ALLOWED_AUDIENCES = [
     x.strip()
     for x in os.environ.get("OIDC_ALLOWED_AUDIENCES", OIDC_RP_CLIENT_ID).split(",")
@@ -251,7 +252,7 @@ OIDC_OP_TOKEN_ENDPOINT = f"{os.environ.get('ZITADEL_HOST', '')}/oauth/v2/token"
 OIDC_OP_USERINFO_ENDPOINT = f"{os.environ.get('ZITADEL_HOST', '')}/oauth/v2/userinfo"
 OIDC_OP_LOGOUT_ENDPOINT = f"{os.environ.get('ZITADEL_HOST', '')}/oauth/v2/end_session"
 OIDC_RP_SIGN_ALGO = "RS256"
-OIDC_RP_SCOPES = "openid email profile"
+OIDC_RP_SCOPES = "openid email profile urn:zitadel:iam:org:project:id:zitadel:aud"
 OIDC_RP_IDP_SIGN_KEY = None
 OIDC_CREATE_USER = True
 OIDC_STORE_ACCESS_TOKEN = True
@@ -268,6 +269,16 @@ DISPOSABLE_DOMAIN_LIST_PATH = os.environ.get("DISPOSABLE_DOMAIN_LIST_PATH", "")
 # HMAC signing key for Zitadel Actions V2 complementToken target.
 # Set after running scripts/configure_actions_v2.py.
 ZITADEL_ACTIONS_SIGNING_KEY = os.environ.get("ZITADEL_ACTIONS_SIGNING_KEY", "")
+# Shared secret for encrypting the Zitadel session cookie between login-app and Django.
+# Must be set to the same value in both services.
+SESSION_ENCRYPTION_KEY = os.environ.get("SESSION_ENCRYPTION_KEY", "dev-insecure-change-me")
+# URL Zitadel uses to reach the complement-token endpoint on Django.
+# In Docker: http://django:8000/api/actions/complement-token
+# In production: https://api.iam.clet.gov.gh/api/actions/complement-token
+ACTIONS_TARGET_ENDPOINT = os.environ.get(
+    "ACTIONS_TARGET_ENDPOINT",
+    "http://django:8000/api/actions/complement-token",
+)
 
 BOOTSTRAP_ADMIN_EMAIL = os.environ.get("BOOTSTRAP_ADMIN_EMAIL", "admin@clet.gov.gh")
 BOOTSTRAP_ZITADEL_ADMIN_EMAIL = os.environ.get("BOOTSTRAP_ZITADEL_ADMIN_EMAIL", "admin@zitadel.localhost")

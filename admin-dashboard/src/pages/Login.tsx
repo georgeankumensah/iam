@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { useAuth } from "@rfdtech/oidc-client/react";
+import { OIDC_CLIENT_ID } from "../lib/env";
 
 export function Login() {
   const { login, is_loading, error } = useAuth();
@@ -8,14 +9,20 @@ export function Login() {
 
   const handleLogin = async () => {
     set_signing_in(true);
-    try {
-      await login();
-    } catch {
-      set_signing_in(false);
-    }
+    await login();
+    set_signing_in(false);
   };
 
   const busy = is_loading || signing_in;
+
+  const error_message = useMemo(() => {
+    if (!error) return null;
+    if (!OIDC_CLIENT_ID) {
+      return "VITE_OIDC_CLIENT_ID is not set — copy .env.example to .env and add your admin-dashboard OIDC client ID";
+    }
+    if (error instanceof Error) return error.message;
+    return String(error);
+  }, [error]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f6f2]">
@@ -30,9 +37,9 @@ export function Login() {
           </div>
         </div>
 
-        {error && (
+        {error_message && (
           <div className="mb-4 rounded-md border border-[#f2dede] bg-[#fef2f2] px-4 py-3 text-xs text-[#8b3a3a]">
-            {error instanceof Error ? error.message : String(error)}
+            {error_message}
           </div>
         )}
 

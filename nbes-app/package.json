@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@rfdtech/oidc-client": "^0.1.0",
+    "@rfdtech/oidc-client": "^0.2.0",
     "oidc-client-ts": "^3.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

@@ -5,6 +5,7 @@ import {
   OIDC_CLIENT_ID,
   OIDC_POST_LOGOUT_URI,
   OIDC_REDIRECT_URI,
+  OIDC_SCOPE,
   ZITADEL_AUTHORITY,
 } from "./lib/env";
 import { Dashboard } from "./pages/Dashboard";
@@ -17,8 +18,9 @@ const config: ZitadelConfigInput = {
   client_id: OIDC_CLIENT_ID,
   redirect_uri: OIDC_REDIRECT_URI,
   post_logout_redirect_uri: OIDC_POST_LOGOUT_URI,
-  monitor_session: true,
-  automatic_silent_renew: true,
+  scope: OIDC_SCOPE,
+  monitor_session: false,
+  automatic_silent_renew: false,
   extra_query_params: { api_base: API_BASE },
 };
 

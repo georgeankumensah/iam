@@ -48,8 +48,15 @@ def complete_view(request):
     if not auth_request:
         return redirect(f"{_LOGIN_APP_URL}/error?error=missing_auth_request")
 
-    session = _parse_zitadel_session_cookie(request.COOKIES.get("zitadel-session"))
+    raw_cookie = request.COOKIES.get("zitadel-session")
+    session = _parse_zitadel_session_cookie(raw_cookie)
     if not session:
+        logger.warning(
+            "complete_view: no valid session cookie. raw=%s len=%s has_cookie=%s",
+            (raw_cookie or "")[:60],
+            len(raw_cookie or ""),
+            bool(raw_cookie),
+        )
         return redirect(f"{_LOGIN_APP_URL}/login?authRequest={auth_request}")
 
     from core.zitadel import ZitadelError, zitadel
@@ -76,9 +83,48 @@ def complete_view(request):
     return redirect(callback_url)
 
 
+def _b64url_decode(s: str) -> bytes:
+    """Decode unpadded base64url (compatible with Node.js toString('base64url'))."""
+    s = s.replace("-", "+").replace("_", "/")
+    padding = 4 - len(s) % 4
+    if padding != 4:
+        s += "=" * padding
+    return base64.b64decode(s)
+
+
+def _decrypt_session_cookie(encoded: str) -> dict | None:
+    """Decrypt an AES-256-GCM encrypted session cookie (iv:tag:ciphertext).
+    Compatible with login-app's Node.js crypto implementation.
+    """
+    import hashlib
+
+    secret = settings.SESSION_ENCRYPTION_KEY
+    if not secret:
+        return None
+    parts = encoded.split(":")
+    if len(parts) != 3:
+        return None
+    try:
+        key = hashlib.sha256(secret.encode()).digest()
+        iv = _b64url_decode(parts[0])
+        tag = _b64url_decode(parts[1])
+        ciphertext = _b64url_decode(parts[2])
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        aesgcm = AESGCM(key)
+        plaintext = aesgcm.decrypt(iv, ciphertext + tag, None)
+        return json.loads(plaintext.decode("utf-8"))
+    except Exception:
+        return None
+
+
 def _parse_zitadel_session_cookie(cookie_value: str | None) -> dict | None:
     if not cookie_value:
         return None
+    # Try new encrypted format first
+    parsed = _decrypt_session_cookie(cookie_value)
+    if parsed:
+        return parsed
+    # Fall back to legacy base64 format
     try:
         padded = cookie_value + "=" * (-len(cookie_value) % 4)
         data = json.loads(base64.b64decode(padded).decode("utf-8"))

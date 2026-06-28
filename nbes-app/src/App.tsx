@@ -9,8 +9,8 @@ const config: ZitadelConfigInput = {
   client_id: import.meta.env.VITE_OIDC_CLIENT_ID as string,
   redirect_uri: import.meta.env.VITE_OIDC_REDIRECT_URI as string,
   post_logout_redirect_uri: import.meta.env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI as string,
-  monitor_session: true,
-  automatic_silent_renew: true,
+  monitor_session: false,
+  automatic_silent_renew: false,
 };
 
 function getRoute() {

@@ -5,7 +5,7 @@ import { createLogger } from "./lib/logger";
 import { getIframeOrigins } from "./lib/server/security-settings";
 import { getServiceConfig } from "./lib/service-url";
 
-const logger = createLogger("proxy");
+const logger = createLogger("middleware");
 
 export const config = {
   matcher: [
@@ -14,7 +14,6 @@ export const config = {
     "/oidc/:path*",
     "/idps/callback/:path*",
     "/saml/:path*",
-    "/:path*",
   ],
 };
 

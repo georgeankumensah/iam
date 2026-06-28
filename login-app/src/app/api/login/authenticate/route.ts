@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkUserByEmail, createSession } from "@/lib/server/zitadel-client";
+import { checkPassword, checkUserByEmail, createSession } from "@/lib/server/zitadel-client";
 import { setSessionCookie } from "@/lib/server/session";
 import { decideNextStep, completeAuthentication } from "@/lib/server/mfa";
 
@@ -15,14 +15,20 @@ export async function POST(request: NextRequest) {
     }
     const userId = userResult.data.userId;
 
-    const sessionResult = await createSession(userId, password || "");
+    const sessionResult = await createSession(userId);
     if (!sessionResult.data) {
+      return NextResponse.json(FAIL, { status: 401 });
+    }
+    const sessionId = sessionResult.data.sessionId;
+
+    const passwordResult = await checkPassword(sessionId, password || "");
+    if (!passwordResult.data) {
       return NextResponse.json(FAIL, { status: 401 });
     }
 
     const session = {
-      id: sessionResult.data.sessionId,
-      token: sessionResult.data.sessionToken,
+      id: sessionId,
+      token: passwordResult.data.sessionToken,
       userId,
     };
 

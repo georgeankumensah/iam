@@ -32,7 +32,7 @@ ISSUER = f"{ZITADEL_HOST.rstrip('/')}"
 
 # Zitadel's ExternalDomain is "localhost" in dev — we use a custom adapter
 # to send `Host: localhost:8080` so Zitadel resolves the instance correctly.
-ZITADEL_EXTERNAL_DOMAIN = "localhost:8080"
+ZITADEL_EXTERNAL_DOMAIN = os.environ.get("ZITADEL_EXTERNAL_DOMAIN", "localhost:8080")
 
 AMS_APP_URL = os.getenv("AMS_APP_URL", "http://localhost:5173")
 NBES_APP_URL = os.getenv("NBES_APP_URL", "http://localhost:5174")
@@ -515,6 +515,58 @@ def grant_login_client_role(token: str, user_id: str) -> None:
         die(f"Failed to grant IAM_LOGIN_CLIENT ({resp.status_code}): {resp.text}")
 
 
+def create_admin_dashboard_app(token: str, project_id: str) -> dict:
+    """Create Admin Dashboard OIDC application.
+
+    The Admin Dashboard is the IAM superadmin SPA running on port 3001.
+    """
+    session = _session()
+    resp = session.get(
+        f"{ISSUER}/management/v1/projects/{project_id}/apps",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=15,
+    )
+    if resp.status_code == 200:
+        for app in resp.json().get("result", []):
+            if app.get("appName") == "Admin Dashboard":
+                print(f"Admin Dashboard OIDC app already exists  (client_id={app.get('clientId', '')})")
+                return {"client_id": app.get("clientId", ""), "client_secret": ""}
+
+    payload = {
+        "name": "Admin Dashboard",
+        "redirectUris": ["http://localhost:3001/auth/callback"],
+        "postLogoutRedirectUris": ["http://localhost:3001/logout"],
+        "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
+        "grantTypes": [
+            "OIDC_GRANT_TYPE_AUTHORIZATION_CODE",
+            "OIDC_GRANT_TYPE_REFRESH_TOKEN",
+        ],
+        "appType": "OIDC_APP_TYPE_USER_AGENT",
+        "authMethodType": "OIDC_AUTH_METHOD_TYPE_NONE",
+        "version": "OIDC_VERSION_1_0",
+        "devMode": True,
+        "accessTokenType": "OIDC_TOKEN_TYPE_JWT",
+    }
+    resp = session.post(
+        f"{ISSUER}/management/v1/projects/{project_id}/apps/oidc",
+        json=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        timeout=15,
+    )
+    if resp.status_code != 200:
+        die(f"Failed to create Admin Dashboard OIDC app ({resp.status_code}): {resp.text}")
+    data = resp.json()
+    client_id = data.get("clientId", "")
+    print(f"Created OIDC app: Admin Dashboard  (client_id={client_id})")
+    return {
+        "client_id": client_id,
+        "client_secret": "",
+    }
+
+
 if __name__ == "__main__":
     wait_for_zitadel()
 
@@ -531,9 +583,10 @@ if __name__ == "__main__":
     oidc = create_oidc_app(token, project_id)
     ams = create_ams_app(token, project_id)
     nbes = create_nbes_app(token, project_id)
+    admin_dashboard = create_admin_dashboard_app(token, project_id)
     sa_key_json = create_service_account(token, org_id)
-    setup_login_client(token, org_id)
-    grant_login_client_role(token, key_data["userId"])
+    login_client_user_id = setup_login_client(token, org_id)
+    grant_login_client_role(token, login_client_user_id)
 
     # Enforce mandatory MFA and enable the supported second factors.
     try:
@@ -575,4 +628,5 @@ if __name__ == "__main__":
     print(f"  AMS_APP_URL={AMS_APP_URL}")
     print(f"  NBES_APP_URL={NBES_APP_URL}")
     print(f"  DJANGO_APP_URL={DJANGO_APP_URL}")
+    print(f"  ADMIN_DASHBOARD_CLIENT_ID={admin_dashboard['client_id']}")
     print("=" * 60)

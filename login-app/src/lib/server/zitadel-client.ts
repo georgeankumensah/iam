@@ -5,7 +5,7 @@ import { createLogger } from "../logger";
 
 const logger = createLogger("zitadel-client");
 
-const ZITADEL_EXTERNAL_DOMAIN = "localhost:8080";
+const ZITADEL_EXTERNAL_DOMAIN = process.env.ZITADEL_EXTERNAL_DOMAIN || "localhost:8080";
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
@@ -232,18 +232,27 @@ export async function requestPasswordReset(userId: string) {
   );
 }
 
-export async function createSession(userId: string, password?: string) {
-  const checks: Record<string, unknown> = {
-    user: { userId },
-  };
-  if (password) {
-    checks.password = { password };
-  }
+export async function createSession(userId: string) {
   return fetchFromZitadel<{ sessionId: string; sessionToken: string }>(
     "/v2/sessions",
     {
       method: "POST",
-      body: JSON.stringify({ checks, metadata: {} }),
+      body: JSON.stringify({
+        checks: { user: { userId } },
+        metadata: {},
+      }),
+    }
+  );
+}
+
+export async function checkPassword(sessionId: string, password: string) {
+  return fetchFromZitadel<{ sessionToken: string }>(
+    `/v2/sessions/${encodeURIComponent(sessionId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        checks: { password: { password } },
+      }),
     }
   );
 }
