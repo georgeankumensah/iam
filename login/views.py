@@ -113,13 +113,17 @@ def _decrypt_session_cookie(encoded: str) -> dict | None:
         aesgcm = AESGCM(key)
         plaintext = aesgcm.decrypt(iv, ciphertext + tag, None)
         return json.loads(plaintext.decode("utf-8"))
-    except Exception:
+    except Exception as e:
+        logger.debug("_decrypt_session_cookie failed: %s: %s", type(e).__name__, e)
         return None
 
 
 def _parse_zitadel_session_cookie(cookie_value: str | None) -> dict | None:
     if not cookie_value:
         return None
+    # URL-decode in case Django's cookie parser didn't decode it
+    from urllib.parse import unquote
+    cookie_value = unquote(cookie_value)
     # Try new encrypted format first
     parsed = _decrypt_session_cookie(cookie_value)
     if parsed:
