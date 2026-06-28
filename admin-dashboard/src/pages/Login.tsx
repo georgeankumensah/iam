@@ -1,19 +1,19 @@
 import { useMemo, useState } from "react";
 import { ShieldCheck } from "lucide-react";
-import { useAuth } from "@rfdtech/oidc-client/react";
+import { useAuth } from "@zitadel/react-auth";
 import { OIDC_CLIENT_ID } from "../lib/env";
 
 export function Login() {
-  const { login, is_loading, error } = useAuth();
+  const { signinRedirect, isLoading, error } = useAuth();
   const [signing_in, set_signing_in] = useState(false);
 
   const handleLogin = async () => {
     set_signing_in(true);
-    await login();
+    await signinRedirect();
     set_signing_in(false);
   };
 
-  const busy = is_loading || signing_in;
+  const busy = isLoading || signing_in;
 
   const error_message = useMemo(() => {
     if (!error) return null;

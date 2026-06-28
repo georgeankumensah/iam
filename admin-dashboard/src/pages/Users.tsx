@@ -11,7 +11,7 @@ import {
   Users as UsersIcon,
   XCircle,
 } from "lucide-react";
-import { useAuth } from "@rfdtech/oidc-client/react";
+import { useAuth } from "@zitadel/react-auth";
 import { Button } from "../components/Button";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { Input } from "../components/Input";
@@ -55,8 +55,20 @@ export function Users() {
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const { logout } = useAuth();
+  const { user, signoutRedirect } = useAuth();
   const api = useApi();
+
+  const userRoles: string[] = (() => {
+    const profile = user?.profile as Record<string, unknown> | undefined;
+    if (!profile) return [];
+    const roles: string[] = [];
+    for (const [key, val] of Object.entries(profile)) {
+      if (key.startsWith("urn:zitadel:iam:org:project") && key.endsWith(":roles") && val && typeof val === "object") {
+        roles.push(...Object.keys(val as Record<string, unknown>));
+      }
+    }
+    return roles.sort();
+  })();
 
   const load = useCallback(
     async (p: number, q: string) => {
@@ -148,6 +160,18 @@ export function Users() {
               <p className="text-xs text-[#aeb9b2]">User management</p>
             </div>
           </div>
+          {userRoles.length > 0 && (
+            <div className="hidden items-center gap-1.5 sm:flex">
+              {userRoles.map((r) => (
+                <span
+                  key={r}
+                  className="rounded-full border border-white/15 px-2.5 py-0.5 text-xs text-[#d6ff6b]"
+                >
+                  {r}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -159,7 +183,7 @@ export function Users() {
             </button>
             <button
               type="button"
-              onClick={() => logout({ prompt: "none" })}
+              onClick={() => signoutRedirect({ extraQueryParams: { prompt: "none" } })}
               className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm text-white hover:bg-white/10"
             >
               <LogOut size={16} />

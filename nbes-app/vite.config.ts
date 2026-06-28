@@ -8,7 +8,7 @@ export default defineConfig({
     host: "0.0.0.0",
   },
   optimizeDeps: {
-    exclude: ["@rfdtech/oidc-client", "@rfdtech/oidc-client/react"],
+    include: ["@zitadel/react-auth"],
   },
   appType: "spa",
 });

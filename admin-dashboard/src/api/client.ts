@@ -1,13 +1,21 @@
-import { useAuth } from "@rfdtech/oidc-client/react";
+import { useAuth } from "@zitadel/react-auth";
 import { API_BASE } from "../lib/env";
 
 type RequestResult<T> = { data: T; status: number };
 
 export function useApi() {
-  const { get_access_token } = useAuth();
+  const { user, signinSilent } = useAuth();
 
   async function authHeaders(): Promise<Record<string, string>> {
-    const token = await get_access_token();
+    let token = user?.access_token;
+    if (!token || user?.expired) {
+      try {
+        await signinSilent();
+        token = user?.access_token;
+      } catch {
+        token = undefined;
+      }
+    }
     return {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

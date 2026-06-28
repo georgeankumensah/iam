@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { useAuth, useToken } from "@rfdtech/oidc-client/react";
+import { useAuth } from "@zitadel/react-auth";
 
 export default function Home() {
-  const { user, is_authenticated, is_loading, logout } = useAuth();
-  const { access_token } = useToken();
+  const { user, isAuthenticated, isLoading, signoutRedirect } = useAuth();
+  const access_token = user?.access_token ?? null;
   const [userinfo, setUserinfo] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
-    if (is_loading) return;
+    if (isLoading) return;
 
-    if (!is_authenticated) {
+    if (!isAuthenticated) {
       window.location.href = "/login";
       return;
     }
@@ -22,7 +22,19 @@ export default function Home() {
       .then((res) => (res.ok ? res.json() : null))
       .then(setUserinfo)
       .catch(() => setUserinfo(null));
-  }, [is_authenticated, is_loading, access_token]);
+  }, [isAuthenticated, isLoading, access_token]);
+
+  const userRoles: string[] = (() => {
+    const profile = user?.profile as Record<string, unknown> | undefined;
+    if (!profile) return [];
+    const roles: string[] = [];
+    for (const [key, val] of Object.entries(profile)) {
+      if (key.startsWith("urn:zitadel:iam:org:project") && key.endsWith(":roles") && val && typeof val === "object") {
+        roles.push(...Object.keys(val as Record<string, unknown>));
+      }
+    }
+    return roles.sort();
+  })();
 
   if (!user) {
     return (
@@ -39,7 +51,7 @@ export default function Home() {
     <div className="home-page">
       <header>
         <h1>NBES</h1>
-        <button onClick={logout} className="btn-secondary">
+        <button onClick={signoutRedirect} className="btn-secondary">
           Sign out
         </button>
       </header>
@@ -52,6 +64,7 @@ export default function Home() {
               <tr><td>User ID</td><td><code>{user.profile.sub}</code></td></tr>
               <tr><td>Email</td><td>{user.profile.email || "—"}</td></tr>
               <tr><td>Name</td><td>{user.profile.name || user.profile.preferred_username || "—"}</td></tr>
+              <tr><td>Roles</td><td>{userRoles.length > 0 ? userRoles.join(", ") : "—"}</td></tr>
             </tbody>
           </table>
         </div>

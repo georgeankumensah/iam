@@ -1,14 +1,14 @@
 import { useEffect } from "react";
-import { useAuth } from "@rfdtech/oidc-client/react";
+import { useAuth } from "@zitadel/react-auth";
 
 export default function Callback() {
-  const { is_authenticated, error } = useAuth();
+  const { isAuthenticated, error } = useAuth();
 
   useEffect(() => {
-    if (is_authenticated) {
+    if (isAuthenticated) {
       window.location.href = "/";
     }
-  }, [is_authenticated]);
+  }, [isAuthenticated]);
 
   if (error) {
     return (

@@ -1,17 +1,12 @@
-import { AuthProvider } from "@rfdtech/oidc-client/react";
-import type { ZitadelConfigInput } from "@rfdtech/oidc-client";
+import { AuthProvider } from "@zitadel/react-auth";
 import Login from "./pages/Login";
 import Callback from "./pages/Callback";
 import Home from "./pages/Home";
 
-const config: ZitadelConfigInput = {
-  authority: import.meta.env.VITE_OIDC_AUTHORITY as string,
-  client_id: import.meta.env.VITE_OIDC_CLIENT_ID as string,
-  redirect_uri: import.meta.env.VITE_OIDC_REDIRECT_URI as string,
-  post_logout_redirect_uri: import.meta.env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI as string,
-  monitor_session: false,
-  automatic_silent_renew: false,
-};
+const AUTH = import.meta.env.VITE_OIDC_AUTHORITY as string;
+const CID = import.meta.env.VITE_OIDC_CLIENT_ID as string;
+const REDIR = import.meta.env.VITE_OIDC_REDIRECT_URI as string;
+const LOGOUT = import.meta.env.VITE_OIDC_POST_LOGOUT_REDIRECT_URI as string;
 
 function getRoute() {
   const { pathname } = window.location;
@@ -22,7 +17,17 @@ function getRoute() {
 
 export default function App() {
   return (
-    <AuthProvider config={config}>
+    <AuthProvider
+      authority={AUTH}
+      client_id={CID}
+      redirect_uri={REDIR}
+      post_logout_redirect_uri={LOGOUT}
+      monitorSession={true}
+      automaticSilentRenew={true}
+      onSigninCallback={() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }}
+    >
       <Router />
     </AuthProvider>
   );

@@ -4,11 +4,11 @@
   "workspaces": [
     "ams-app",
     "nbes-app",
-    "admin-dashboard",
-    "packages/oidc-client"
+    "admin-dashboard"
   ],
   "devDependencies": {
-    "react": "^19.2.7",
-    "@types/react": "^19.2.17"
-  }
+    "@types/react": "^19.2.17",
+    "react": "^19.2.7"
+  },
+  "dependencies": {}
 }

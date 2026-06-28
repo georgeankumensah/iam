@@ -1,17 +1,17 @@
 import { useEffect } from "react";
-import { useAuth } from "@rfdtech/oidc-client/react";
+import { useAuth } from "@zitadel/react-auth";
 
 export default function Login() {
-  const { login, is_authenticated, is_loading } = useAuth();
+  const { signinRedirect, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    if (is_loading) return;
-    if (is_authenticated) {
+    if (isLoading) return;
+    if (isAuthenticated) {
       window.location.href = "/";
     }
-  }, [is_authenticated, is_loading]);
+  }, [isAuthenticated, isLoading]);
 
-  if (is_loading) {
+  if (isLoading) {
     return (
       <div className="login-page">
         <div className="card">
@@ -22,14 +22,14 @@ export default function Login() {
     );
   }
 
-  if (is_authenticated) return null;
+  if (isAuthenticated) return null;
 
   return (
     <div className="login-page">
       <div className="card">
         <h1>NBES</h1>
         <p>Notification &amp; Broadcast Exchange Service</p>
-        <button onClick={() => login()} className="btn-primary">
+        <button onClick={() => signinRedirect()} className="btn-primary">
           Sign in with Zitadel
         </button>
       </div>
