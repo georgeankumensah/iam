@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@zitadel/react-auth";
+import { hasAuthParams, useAuth } from "@zitadel/react-auth";
 
 export default function Home() {
   const { user, isAuthenticated, isLoading, signoutRedirect } = useAuth();
@@ -9,7 +9,8 @@ export default function Home() {
   useEffect(() => {
     if (isLoading) return;
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !hasAuthParams()) {
+      sessionStorage.setItem("return_to", window.location.pathname);
       window.location.href = "/login";
       return;
     }

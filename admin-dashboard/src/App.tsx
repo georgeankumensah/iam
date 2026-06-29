@@ -1,4 +1,4 @@
-import { AuthProvider, useAuth } from "@zitadel/react-auth";
+import { AuthProvider, hasAuthParams, useAuth } from "@zitadel/react-auth";
 import type { ReactNode } from "react";
 import {
   API_BASE,
@@ -15,7 +15,7 @@ import { LogoutDone } from "./pages/LogoutDone";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isLoading, isAuthenticated } = useAuth();
-  if (isLoading) {
+  if (isLoading || hasAuthParams()) {
     return (
       <div className="login-page">
         <div className="card">
@@ -26,6 +26,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
   if (!isAuthenticated) {
+    sessionStorage.setItem("return_to", window.location.pathname);
     window.location.href = "/login";
     return null;
   }
@@ -52,6 +53,11 @@ export default function App() {
       automaticSilentRenew={true}
       onSigninCallback={() => {
         window.history.replaceState({}, document.title, window.location.pathname);
+        const returnTo = sessionStorage.getItem("return_to");
+        if (returnTo) {
+          sessionStorage.removeItem("return_to");
+          window.location.href = returnTo;
+        }
       }}
     >
       <Router />

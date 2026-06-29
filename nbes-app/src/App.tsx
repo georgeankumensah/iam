@@ -1,4 +1,4 @@
-import { AuthProvider } from "@zitadel/react-auth";
+import { AuthProvider, hasAuthParams } from "@zitadel/react-auth";
 import Login from "./pages/Login";
 import Callback from "./pages/Callback";
 import Home from "./pages/Home";
@@ -26,6 +26,11 @@ export default function App() {
       automaticSilentRenew={true}
       onSigninCallback={() => {
         window.history.replaceState({}, document.title, window.location.pathname);
+        const returnTo = sessionStorage.getItem("return_to");
+        if (returnTo) {
+          sessionStorage.removeItem("return_to");
+          window.location.href = returnTo;
+        }
       }}
     >
       <Router />
