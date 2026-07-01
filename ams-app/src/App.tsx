@@ -1,4 +1,5 @@
 import { AuthProvider, hasAuthParams } from "@zitadel/react-auth";
+import { WebStorageStateStore } from "oidc-client-ts";
 import Login from "./pages/Login";
 import Callback from "./pages/Callback";
 import Home from "./pages/Home";
@@ -24,8 +25,13 @@ export default function App() {
       post_logout_redirect_uri={LOGOUT}
       monitorSession={true}
       automaticSilentRenew={true}
+      userStore={new WebStorageStateStore({ store: window.localStorage })}
       onSigninCallback={() => {
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname,
+        );
         const returnTo = sessionStorage.getItem("return_to");
         if (returnTo) {
           sessionStorage.removeItem("return_to");

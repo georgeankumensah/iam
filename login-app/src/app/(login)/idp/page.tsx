@@ -4,10 +4,13 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/Card";
 
+const KEYCLOAK_IDP_ID = process.env.NEXT_PUBLIC_KEYCLOAK_IDP_ID || "";
+
 const IDPS = [
   { id: "google", label: "Google", icon: "G" },
   { id: "github", label: "GitHub", icon: "GH" },
   { id: "microsoft", label: "Microsoft", icon: "MS" },
+  ...(KEYCLOAK_IDP_ID ? [{ id: KEYCLOAK_IDP_ID, label: "Keycloak", icon: "KC" }] : []),
 ];
 
 function IdpContent() {

@@ -139,6 +139,21 @@ services:
       - db
       - redis
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    command: start-dev --import-realm
+    ports:
+      - "8082:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_URL: http://localhost:8082
+      KC_HOSTNAME_ADMIN_URL: http://localhost:8082
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+
   login-app:
     build:
       context: ./login-app
@@ -154,11 +169,18 @@ services:
       ONBOARDING_INTERNAL_SECRET: ${ONBOARDING_INTERNAL_SECRET:-change-me-internal}
       SESSION_ENCRYPTION_KEY: ${SESSION_ENCRYPTION_KEY:-dev-insecure-change-me}
       ZITADEL_EXTERNAL_DOMAIN: ${ZITADEL_EXTERNAL_DOMAIN:-localhost:8080}
+      KEYCLOAK_TOKEN_URL: http://keycloak:8080/realms/clet-iam/protocol/openid-connect/token
+      KEYCLOAK_CLIENT_ID: iam-login-app
+      KEYCLOAK_CLIENT_SECRET: login-app-dev-secret
+      JWT_IDP_PRIVATE_KEY_PATH: /keys/private.pkcs8.pem
+      JWT_IDP_PUBLIC_KEY_PATH: /keys/public.pem
+      NEXT_PUBLIC_KEYCLOAK_IDP_ID: ${NEXT_PUBLIC_KEYCLOAK_IDP_ID}
     volumes:
       - ./login-app:/app
       - /app/node_modules
       - /app/.next
       - ./zitadel/machinekey:/machinekey
+      - ./jwt-keys:/keys
     depends_on:
       zitadel:
         condition: service_started

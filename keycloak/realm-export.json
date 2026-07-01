@@ -1,0 +1,41 @@
+{
+  "realm": "clet-iam",
+  "displayName": "CLET IAM",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "clients": [
+    {
+      "clientId": "iam-login-app",
+      "name": "IAM Login App Backend",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "login-app-dev-secret",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directGrantsOnly": true
+    }
+  ],
+  "users": [
+    {
+      "username": "keycloak-test",
+      "email": "keycloak-test@clet.gov.gh",
+      "firstName": "Keycloak",
+      "lastName": "Test",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test1234",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

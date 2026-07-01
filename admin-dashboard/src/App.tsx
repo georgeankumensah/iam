@@ -1,4 +1,5 @@
 import { AuthProvider, hasAuthParams, useAuth } from "@zitadel/react-auth";
+import { WebStorageStateStore } from "oidc-client-ts";
 import type { ReactNode } from "react";
 import {
   API_BASE,
@@ -51,6 +52,7 @@ export default function App() {
       extraQueryParams={{ api_base: API_BASE }}
       monitorSession={true}
       automaticSilentRenew={true}
+      userStore={new WebStorageStateStore({ store: window.localStorage })}
       onSigninCallback={() => {
         window.history.replaceState({}, document.title, window.location.pathname);
         const returnTo = sessionStorage.getItem("return_to");
